@@ -50,7 +50,12 @@ class AppState:
         self.status_message = "Готов к работе"
         self.device_serial = None
         self.device_state = "disconnected"
-        self.logs = []
+        now = time.strftime("%H:%M:%S")
+        self.logs = [
+            {"time": now, "text": "Мастер разблокировки Geely ADB готов к работе.", "level": "info", "formatted": f"[{now}] ℹ️ Мастер разблокировки Geely ADB готов к работе."},
+            {"time": now, "text": "Совместимость: Geely EX5 EM-i, Belgee X80 и модели на Flyme Auto / Ecarx (2.1.4.5+).", "level": "info", "formatted": f"[{now}] 🚘 Совместимость: Geely EX5 EM-i, Belgee X80 и модели на Flyme Auto / Ecarx (2.1.4.5+)."},
+            {"time": now, "text": "Что делает мастер: фиксирует постоянный ADB, отключает защиту Parrot/AutoInstallVerifier и ставит переключатель на экран.", "level": "info", "formatted": f"[{now}] 💡 Что делает мастер: фиксирует постоянный ADB, снимает защиту Parrot от сторонних программ и ставит тумблер на экран авто."}
+        ]
         self.worker_thread = None
         self.stop_worker = False
 
@@ -267,9 +272,9 @@ def check_devices():
 # ==================== STEP 2: FACTORY RESET CATCH ====================
 def worker_catch_factory_reset():
     """Continuously waits for device reboot, grants root, and sets VHAL property."""
-    STATE.set_status("working", "Ожидание перезагрузки ГУ после сброса настроек... Не закрывайте окно!", 2)
-    STATE.log("ВНИМАНИЕ: Сделайте сброс до заводских настроек на экране автомобиля сейчас!", "warning")
-    STATE.log("Скрипт циклически опрашивает порт и перехватит 20-секундное окно root...", "info")
+    STATE.set_status("working", "Ожидание перезагрузки ГУ после сброса на заводские настройки... Не закрывайте окно!", 2)
+    STATE.log("ВНИМАНИЕ: На экране автомобиля перейдите в «Настройки ➔ Система ➔ Сброс на заводские настройки» и подтвердите сброс.", "warning")
+    STATE.log("💡 Как это работает: при штатном сбросе система кратковременно открывает 20-секундное окно отладки. Программа непрерывно сканирует USB-порт и автоматически перехватит его.", "info")
 
     vhal_cmd = "/system/bin/lshal debug android.hardware.automotive.vehicle@2.0::IVehicle/default --set 557872680 i 0 a 0"
     attempt = 0
@@ -282,7 +287,8 @@ def worker_catch_factory_reset():
             continue
 
         attempt += 1
-        STATE.log(f"Устройство обнаружено на шине USB! Попытка перехвата #{attempt}...", "cmd")
+        STATE.log(f"⚡ Устройство обнаружено на шине USB! Попытка перехвата сервисного окна #{attempt}...", "cmd")
+        STATE.log("🔑 Запрашиваем права суперпользователя (adb root)...", "info")
         
         # Ask for root
         run_adb(["root"], timeout=5)
@@ -290,18 +296,19 @@ def worker_catch_factory_reset():
         run_adb(["wait-for-device"], timeout=5)
         run_adb(["remount"], timeout=5)
 
-        STATE.log("Отправка VHAL-команды фиксации ADB...", "cmd")
+        STATE.log("📡 Отправка автомобилю VHAL-команды фиксации: USB_SWITCH=0 (постоянный ADB)...", "cmd")
+        STATE.log("💡 Что делает команда: lshal записывает в системную шину автомобиля флаг постоянного режима ADB, чтобы он больше не выключался после перезагрузок.", "info")
         code, out, err = run_adb(["shell", vhal_cmd], timeout=8)
         combined_out = f"{out} {err}".strip()
-        STATE.log(f"Ответ VHAL: {combined_out}")
+        STATE.log(f"Ответ системы автомобиля: {combined_out}")
 
         if "Set property" in combined_out:
-            STATE.log("УСПЕХ! Порт ADB успешно зафиксирован на постоянной основе!", "success")
-            STATE.set_status("success", "ADB зафиксирован! Выньте перемычку и нажмите «Продолжить».", 3)
+            STATE.log("🎉 УСПЕХ! Автомобиль подтвердил фиксацию порта (Set property)! Постоянный ADB активирован.", "success")
+            STATE.set_status("success", "ADB зафиксирован! Выключите питание авто, выньте перемычку и нажмите «Продолжить».", 3)
             return
 
         if "Must be root" in combined_out:
-            STATE.log("Окно root (20 сек) было упущено. Запустите сброс до заводских настроек ещё раз, скрипт продолжает ждать...", "warning")
+            STATE.log("⚠️ Сервисное окно (20 сек) успело закрыться до фиксации. Ничего страшного: просто нажмите «Сброс на заводские настройки» на экране авто ещё раз — скрипт продолжает ждать...", "warning")
 
         time.sleep(1)
 
@@ -309,7 +316,8 @@ def worker_catch_factory_reset():
 def worker_reboot_and_verify():
     """Reboots HU without jumper and waits for full boot."""
     STATE.set_status("working", "Перезагрузка ГУ... Это займет около 1.5 - 2 минут.", 3)
-    STATE.log("Отправляем команду перезагрузки ГУ...", "cmd")
+    STATE.log("🔄 Отправляем команду перезагрузки головного устройства...", "cmd")
+    STATE.log("💡 Пояснение: перемычка уже вынута, теперь мы проверяем, сохраняется ли доступ по ADB в обычном рабочем режиме автомобиля.", "info")
     run_adb(["reboot"], timeout=10)
     time.sleep(15)
 
@@ -321,12 +329,12 @@ def worker_reboot_and_verify():
 
         code, out, _ = run_adb(["shell", "getprop", "sys.boot_completed"], timeout=5)
         if code == 0 and out.strip() == "1":
-            STATE.log("ГУ успешно загрузилось! Проверяем постоянство ADB...", "success")
+            STATE.log("✅ Головное устройство полностью загрузилось! Проверяем постоянство связи ADB...", "success")
             time.sleep(2)
             check_devices()
             if STATE.device_state == "connected":
-                STATE.log("ADB стабильно активен без перемычки!", "success")
-                STATE.set_status("success", "ГУ перезагружено, ADB активен. Переходим к снятию блокировок.", 4)
+                STATE.log("🎉 Связь подтверждена! ADB стабильно активен без перемычки.", "success")
+                STATE.set_status("success", "ГУ перезагружено, ADB активен. Переходим к снятию системных ограничений.", 4)
                 return
         time.sleep(3)
 
@@ -347,7 +355,8 @@ def worker_unlock_and_install():
     run_adb(["wait-for-device"], timeout=10)
 
     # Push script
-    STATE.log("Загрузка скрипта разблокировки на ГУ...", "cmd")
+    STATE.log("📂 Загрузка системного скрипта разблокировки (unlock-hu.sh) на ГУ...", "cmd")
+    STATE.log("💡 Пояснение: по умолчанию прошивка Geely отклоняет установку любых приложений без цифрового сертификата Parrot. Скрипт отключает эту блокировку в build.prop и отключает системный верификатор.", "info")
     code, _, err = run_adb(["push", unlock_script, "/data/local/tmp/gt-unlock.sh"], timeout=15)
     if code != 0:
         STATE.set_status("error", f"Ошибка копирования скрипта на ГУ: {err}", 4)
@@ -355,7 +364,7 @@ def worker_unlock_and_install():
 
     # Run loop
     for pass_num in range(1, 9):
-        STATE.log(f"Выполнение скрипта разблокировки (проход {pass_num}/8)...", "cmd")
+        STATE.log(f"⚙️ Выполнение процедур снятия защиты (проход {pass_num}/8)...", "cmd")
         code, out, _ = run_adb(["shell", "sh", "/data/local/tmp/gt-unlock.sh"], timeout=60)
         
         for line in out.splitlines():
@@ -365,14 +374,15 @@ def worker_unlock_and_install():
 
         if "GT:OK" in out:
             run_adb(["shell", "rm", "-f", "/data/local/tmp/gt-unlock.sh"], timeout=5)
-            STATE.log("Блокировки Parrot и верификатор приложений успешно отключены!", "success")
+            STATE.log("✅ Ограничения Parrot и системный верификатор успешно отключены!", "success")
+            STATE.log("💡 Теперь система автомобиля позволит устанавливать любые стандартные Android APK (Яндекс.Навигатор, видеоплееры, лаунчеры).", "info")
             break
         elif "GT:REMOUNT" in out:
-            STATE.log("Требуется перемонтирование разделов, выполняем remount...", "info")
+            STATE.log("🔄 Открываем системный раздел диска ГУ для записи (remount)...", "info")
             run_adb(["remount"], timeout=15)
             time.sleep(2)
         elif "GT:REBOOT" in out:
-            STATE.log("Требуется промежуточная перезагрузка ГУ (около 2 минут)...", "info")
+            STATE.log("🔄 Требуется промежуточная перезагрузка ГУ для применения настроек (около 1.5 - 2 минут)...", "info")
             run_adb(["reboot"], timeout=10)
             time.sleep(20)
             # Wait for boot
@@ -390,23 +400,24 @@ def worker_unlock_and_install():
 
     # Install Toggle APK
     if os.path.isfile(apk_file):
-        STATE.log("Установка приложения ADB Toggle (переключатель ADB на экране)...", "cmd")
+        STATE.log("📱 Установка приложения Geely-ADB-Toggle на экран мультимедиа...", "cmd")
+        STATE.log("💡 Для чего оно нужно: этот удобный тумблер в меню авто позволит вам в один клик переключать USB-разъем между обычной флешкой с музыкой и кабелем отладки.", "info")
         code, out, err = run_adb(["install", "-r", "--user", "10", apk_file], timeout=60)
         if code == 0 and "Success" in out:
-            STATE.log("Приложение Geely-ADB-Toggle успешно установлено!", "success")
+            STATE.log("✅ Приложение Geely-ADB-Toggle успешно установлено в профиль пользователя!", "success")
         else:
             # Try default install without --user 10 as fallback
-            STATE.log(f"Установка в пользователя 10 вернула: {out} {err}. Пробуем обычную установку...", "warning")
+            STATE.log(f"Установка в профиль 10 вернула: {out} {err}. Пробуем стандартную установку...", "warning")
             code2, out2, _ = run_adb(["install", "-r", apk_file], timeout=60)
             if "Success" in out2:
-                STATE.log("Приложение Geely-ADB-Toggle успешно установлено!", "success")
+                STATE.log("✅ Приложение Geely-ADB-Toggle успешно установлено!", "success")
             else:
                 STATE.log(f"Предупреждение при установке APK: {out2}", "warning")
     else:
         STATE.log("APK-файл переключателя не найден в папке core, пропускаем установку переключателя", "warning")
 
     STATE.set_status("success", "Поздравляем! Разблокировка полностью завершена!", 5)
-    STATE.log("ВСЕ ЭТАПЫ ВЫПОЛНЕНЫ! Теперь вы можете установить любые приложения через GeelyTune.", "success")
+    STATE.log("🏆 ВСЕ ЭТАПЫ РАЗБЛОКИРОВКИ ВЫПОЛНЕНЫ! Теперь вы можете устанавливать любые приложения через официальный веб-установщик GeelyTune.", "success")
 
 # ==================== HTTP SERVER ====================
 class RequestHandler(BaseHTTPRequestHandler):

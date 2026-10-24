@@ -526,52 +526,140 @@
       gap: 6px;
     }
 
-    /* LOGS DRAWER */
-    details.logs-panel {
-      background: rgba(15, 23, 42, 0.8);
+    /* LIVE TERMINAL CARD */
+    .live-terminal-card {
+      background: rgba(13, 19, 33, 0.92);
       border: 1px solid var(--card-border);
-      border-radius: 16px;
+      border-radius: 18px;
       overflow: hidden;
-      transition: all 0.2s;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s;
     }
 
-    details.logs-panel summary {
-      padding: 14px 20px;
-      font-size: 13.5px;
-      font-weight: 600;
-      cursor: pointer;
-      color: var(--text-muted);
-      user-select: none;
+    .live-terminal-card.active-working {
+      border-color: rgba(59, 130, 246, 0.45);
+      box-shadow: 0 0 25px rgba(59, 130, 246, 0.2);
+      animation: pulseBorder 2.5s infinite alternate ease-in-out;
+    }
+
+    @keyframes pulseBorder {
+      0% { border-color: rgba(59, 130, 246, 0.3); box-shadow: 0 0 15px rgba(59, 130, 246, 0.15); }
+      100% { border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 0 25px rgba(16, 185, 129, 0.25); }
+    }
+
+    .terminal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 12px 18px;
+      background: rgba(17, 24, 39, 0.85);
+      border-bottom: 1px solid var(--card-border);
     }
 
-    details.logs-panel summary:hover {
+    .terminal-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .live-pulse-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 12px;
+      padding: 3px 8px;
+    }
+
+    .live-pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: blinkDot 1.4s infinite ease-in-out;
+    }
+
+    @keyframes blinkDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .live-pulse-text {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #6ee7b7;
+    }
+
+    .terminal-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .terminal-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .terminal-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .btn-term-clear {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-term-clear:hover {
+      background: rgba(255, 255, 255, 0.15);
       color: #fff;
     }
 
     .log-terminal {
-      background: #050811;
-      padding: 16px;
-      max-height: 220px;
+      background: #040711;
+      padding: 16px 18px;
+      max-height: 250px;
+      min-height: 180px;
       overflow-y: auto;
       font-family: var(--font-mono);
-      font-size: 12px;
+      font-size: 12.5px;
       color: #94a3b8;
-      line-height: 1.6;
-      border-top: 1px solid var(--card-border);
+      line-height: 1.65;
     }
 
     .log-line {
-      white-space: pre-wrap;
-      word-break: break-all;
+      margin-bottom: 4px;
+      word-break: break-word;
+      animation: logFadeIn 0.2s ease-out;
     }
 
-    .log-line.success { color: #34d399; }
+    @keyframes logFadeIn {
+      from { opacity: 0; transform: translateX(-4px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .log-line.success { color: #34d399; font-weight: 500; }
     .log-line.warning { color: #fbbf24; }
-    .log-line.error { color: #f87171; }
-    .log-line.cmd { color: #60a5fa; }
+    .log-line.error { color: #f87171; font-weight: 600; }
+    .log-line.cmd { color: #60a5fa; font-weight: 600; }
+    .log-line.explain {
+      background: rgba(99, 102, 241, 0.1);
+      border-left: 3px solid #818cf8;
+      padding: 3px 10px;
+      border-radius: 0 6px 6px 0;
+      color: #c7d2fe;
+      margin: 4px 0;
+    }
 
     /* FOOTER */
     footer {
@@ -651,7 +739,7 @@
       </div>
       <div class="step-item" id="step-ind-2">
         <div class="step-num">2</div>
-        <div class="step-label">Сброс ГУ<br>(Factory Reset)</div>
+        <div class="step-label">Сброс на<br>заводские настройки</div>
       </div>
       <div class="step-item" id="step-ind-3">
         <div class="step-num">3</div>
@@ -714,26 +802,27 @@
         </div>
 
         <button class="btn-action primary" id="btn-step-1">
-          <span>Перемычка и кабель на месте, перейти к сбросу ГУ</span>
+          <span>Перемычка и кабель на месте, перейти к сбросу на заводские настройки</span>
           <div class="spinner"></div>
         </button>
       </section>
 
       <!-- STEP 2: FACTORY RESET & VHAL CATCH -->
       <section class="step-content" id="step-2">
-        <h2 class="step-title">Шаг 2: Сброс настроек (Factory Reset)</h2>
-        <p class="step-desc">Скрипт сейчас непрерывно опрашивает порт и ожидает старт ГУ. При загрузке откроется 20-секундное окно, в котором программа автоматически зафиксирует постоянный ADB.</p>
+        <h2 class="step-title">Шаг 2: Сброс на заводские настройки</h2>
+        <p class="step-desc">Скрипт непрерывно сканирует USB-порт. На экране автомобиля выполните сброс на заводские настройки — в момент перезагрузки программа перехватит 20-секундное окно и навсегда зафиксирует ADB.</p>
         
         <div class="info-grid">
           <div class="info-box highlight">
             <div class="info-icon">⚙️</div>
             <div class="info-content">
               <h3>Действие на центральном экране автомобиля:</h3>
-              <p>Зайдите в меню: <b>Настройки ➔ Система ➔ Сброс к заводским настройкам (Factory Reset)</b> и подтвердите действие.</p>
+              <p>Зайдите в меню: <b>Настройки ➔ Система ➔ Сброс на заводские настройки</b> (в некоторых версиях: <i>Восстановление заводских настроек</i>) и подтвердите действие.</p>
               <ul>
                 <li>Экран ГУ погаснет и начнется перезагрузка.</li>
                 <li>Когда на приборной панели появится логотип/анимация (экран ГУ может еще быть черным), на ПК появится устройство <code>ADB Gadget</code>.</li>
-                <li><b>Ничего не нажимайте на компьютере</b> — скрипт сам перехватит окно, получит root и выполнит VHAL-команду фиксации ADB!</li>
+                <li>В журнале операций ниже вы увидите активный перехват и подачу команды <code>USB_SWITCH=0</code>.</li>
+                <li><b>Ничего не нажимайте на компьютере</b> — скрипт сам перехватит окно и зафиксирует порт!</li>
               </ul>
             </div>
           </div>
@@ -742,13 +831,13 @@
             <div class="info-icon">⚠️</div>
             <div class="info-content">
               <h3>Предостережение из опыта первопроходцев:</h3>
-              <p>Перезагрузка двумя кнопками на руле (голосовая + правая OK) <b>НЕ открывает сервисное окно ADB!</b> Нужен строго штатный Factory Reset из настроек системы.</p>
+              <p>Перезагрузка двумя кнопками на руле (голосовая + правая OK) <b>НЕ открывает сервисное окно!</b> Требуется именно штатный пункт «Сброс на заводские настройки» из меню экрана.</p>
             </div>
           </div>
         </div>
 
         <button class="btn-action secondary" id="btn-step-2" disabled>
-          <span>Ожидаем сброс ГУ (слушаем порт)...</span>
+          <span>Ожидаем сброс на заводские настройки (слушаем порт)...</span>
           <div class="spinner"></div>
         </button>
       </section>
@@ -880,16 +969,25 @@
       </div>
     </details>
 
-    <!-- TERMINAL LOGS -->
-    <details class="logs-panel" id="logs-panel">
-      <summary>
-        <span>Технический журнал (Консоль логов)</span>
-        <span style="font-size: 11px; color: #64748b;">нажмите для просмотра</span>
-      </summary>
+    <!-- LIVE TERMINAL LOGS -->
+    <section class="live-terminal-card" id="logs-card">
+      <div class="terminal-header">
+        <div class="terminal-title-group">
+          <div class="live-pulse-badge">
+            <span class="live-pulse-dot"></span>
+            <span class="live-pulse-text">В ЭФИРЕ</span>
+          </div>
+          <div class="terminal-title">Журнал операций и пояснения скрипта</div>
+        </div>
+        <div class="terminal-controls">
+          <span class="terminal-hint">Автоматическая фиксация шагов</span>
+          <button class="btn-term-clear" id="btn-clear-logs" title="Очистить экран журнала">Очистить</button>
+        </div>
+      </div>
       <div class="log-terminal" id="log-terminal">
         <div class="log-line">Инициализация веб-интерфейса мастера...</div>
       </div>
-    </details>
+    </section>
 
     <!-- FOOTER -->
     <footer>
@@ -914,6 +1012,8 @@
     const bannerText = document.getElementById('banner-text');
     const statusBanner = document.getElementById('status-banner');
     const logTerminal = document.getElementById('log-terminal');
+    const logsCard = document.getElementById('logs-card');
+    const btnClearLogs = document.getElementById('btn-clear-logs');
     const btnReset = document.getElementById('btn-reset-wizard');
 
     // Step Buttons
@@ -950,7 +1050,12 @@
     function updateLogs(logs) {
       if (!logs || !logs.length) return;
       logTerminal.innerHTML = logs.map(l => {
-        return `<div class="log-line ${l.level || 'info'}">${escapeHtml(l.formatted || l.text)}</div>`;
+        const text = l.formatted || l.text || '';
+        let extraClass = '';
+        if (text.includes('💡') || text.includes('Пояснение:')) {
+          extraClass = ' explain';
+        }
+        return `<div class="log-line ${l.level || 'info'}${extraClass}">${escapeHtml(text)}</div>`;
       }).join('');
       logTerminal.scrollTop = logTerminal.scrollHeight;
     }
@@ -958,6 +1063,13 @@
     function escapeHtml(text) {
       const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
       return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // Clear logs UI
+    if (btnClearLogs) {
+      btnClearLogs.addEventListener('click', () => {
+        logTerminal.innerHTML = '<div class="log-line info">Экран журнала очищен. Новые события появятся при поступлении...</div>';
+      });
     }
 
     // Call API action
@@ -1006,8 +1118,11 @@
           updateStepper(data.step);
         }
 
-        // Loading states
+        // Loading states and active animations
         isWorking = data.status === 'working';
+        if (logsCard) {
+          logsCard.classList.toggle('active-working', isWorking);
+        }
         if (btnStep1) btnStep1.classList.toggle('loading', isWorking && currentStep === 1);
         if (btnStep2) btnStep2.classList.toggle('loading', isWorking && currentStep === 2);
         if (btnStep3) btnStep3.classList.toggle('loading', isWorking && currentStep === 3);
