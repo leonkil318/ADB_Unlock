@@ -14,7 +14,10 @@ build/
 dist/
 *.spec
 
-# OS metadata
+# OS & media
 .DS_Store
 Thumbs.db
 desktop.ini
+*.mp4
+*.mkv
+*.avi

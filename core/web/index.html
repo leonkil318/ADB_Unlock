@@ -645,12 +645,6 @@
     .log-line {
       margin-bottom: 4px;
       word-break: break-word;
-      animation: logFadeIn 0.2s ease-out;
-    }
-
-    @keyframes logFadeIn {
-      from { opacity: 0; transform: translateX(-4px); }
-      to { opacity: 1; transform: translateX(0); }
     }
 
     .log-line.success { color: #34d399; font-weight: 500; }
@@ -1061,9 +1055,14 @@
       }
     }
 
+    let lastLogsJson = '';
     // Append logs
     function updateLogs(logs) {
       if (!logs || !logs.length) return;
+      const currentJson = JSON.stringify(logs);
+      if (currentJson === lastLogsJson) return; // Do not touch DOM if logs did not change
+      lastLogsJson = currentJson;
+
       logTerminal.innerHTML = logs.map(l => {
         const text = l.formatted || l.text || '';
         let extraClass = '';
@@ -1083,6 +1082,7 @@
     // Clear logs UI
     if (btnClearLogs) {
       btnClearLogs.addEventListener('click', () => {
+        lastLogsJson = '';
         logTerminal.innerHTML = '<div class="log-line info">Экран журнала очищен. Новые события появятся при поступлении...</div>';
       });
     }
@@ -1110,11 +1110,14 @@
         const data = await res.json();
 
         // Update Status banner
-        bannerText.textContent = data.status_message || 'Готов к работе';
-        statusBanner.className = 'status-banner';
-        if (data.status === 'error') statusBanner.classList.add('error');
-        else if (data.status === 'success') statusBanner.classList.add('success');
-        else if (data.status === 'working') statusBanner.classList.add('warning');
+        const newMsg = data.status_message || 'Готов к работе';
+        if (bannerText.textContent !== newMsg) {
+          bannerText.textContent = newMsg;
+        }
+        const expectedClass = 'status-banner' + (data.status === 'error' ? ' error' : (data.status === 'success' ? ' success' : (data.status === 'working' ? ' warning' : '')));
+        if (statusBanner.className !== expectedClass) {
+          statusBanner.className = expectedClass;
+        }
 
         // Update step if changed from backend
         if (data.step && data.step !== currentStep) {
