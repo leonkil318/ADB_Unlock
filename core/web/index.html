@@ -3,177 +3,183 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Мастер разблокировки Geely ADB • EX5 EM-i / Belgee X80</title>
+  <title>Geely ADB Unlock Master • EX5 EM-i / Belgee X80</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #090d16;
-      --card-bg: rgba(17, 24, 39, 0.88);
+      --bg: #080c15;
+      --card-bg: rgba(15, 23, 42, 0.85);
       --card-border: rgba(255, 255, 255, 0.08);
-      --card-hover: rgba(255, 255, 255, 0.12);
-      --text: #f3f4f6;
-      --text-muted: #9ca3af;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
       --accent: #10b981;
-      --accent-glow: rgba(16, 185, 129, 0.25);
       --primary: #3b82f6;
-      --primary-glow: rgba(59, 130, 246, 0.25);
       --warning: #f59e0b;
-      --warning-glow: rgba(245, 158, 11, 0.25);
       --danger: #ef4444;
       --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-mono: 'JetBrains Mono', Consolas, monospace;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+    }
+
+    /* Custom sleek dark scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.35);
     }
 
     body {
       background-color: var(--bg);
       background-image: 
-        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.75) 0px, transparent 100%);
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.12) 0px, transparent 40%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 40%);
       color: var(--text);
       font-family: var(--font);
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 24px 16px 40px;
+      padding: 14px 18px 12px;
     }
 
-    .container {
-      width: 100%;
-      max-width: 920px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    /* HEADER */
+    /* TOP HEADER */
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 24px;
+      padding: 10px 18px;
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 20px;
-      backdrop-filter: blur(16px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      border-radius: 14px;
+      margin-bottom: 12px;
+      flex-shrink: 0;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
 
     .brand-icon {
-      width: 46px;
-      height: 46px;
-      border-radius: 14px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
       background: linear-gradient(135deg, #10b981, #3b82f6);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 16px var(--accent-glow);
-      flex-shrink: 0;
     }
 
-    .brand-icon svg {
-      width: 26px;
-      height: 26px;
-      fill: #fff;
-    }
+    .brand-icon svg { width: 20px; height: 20px; fill: #fff; }
 
     .brand-text h1 {
-      font-size: 20px;
+      font-size: 16px;
       font-weight: 800;
-      letter-spacing: -0.02em;
-      background: linear-gradient(to right, #ffffff, #d1d5db);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .brand-text p {
-      font-size: 13px;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      letter-spacing: -0.01em;
+      color: #fff;
     }
 
     .tag-model {
       display: inline-block;
-      padding: 2px 8px;
-      border-radius: 6px;
+      padding: 2px 7px;
+      border-radius: 5px;
       background: rgba(59, 130, 246, 0.15);
       color: #93c5fd;
       font-weight: 600;
       font-size: 11px;
+      margin-left: 8px;
     }
 
     .header-step-pill {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 7px 16px;
-      border-radius: 20px;
-      font-size: 13px;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 16px;
+      font-size: 12px;
       font-weight: 600;
       background: rgba(59, 130, 246, 0.12);
       border: 1px solid rgba(59, 130, 246, 0.28);
       color: #93c5fd;
     }
 
-    /* STEPPER */
-    .stepper {
+    /* MAIN 2-COLUMN WORKSPACE */
+    .workspace {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      padding: 6px;
-      background: rgba(17, 24, 39, 0.5);
+      grid-template-columns: 370px 1fr;
+      gap: 14px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* LEFT SIDEBAR: STEPS & MANUAL INSTRUCTIONS */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 18px;
+      border-radius: 16px;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .stepper {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
     .step-item {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 14px;
-      border-radius: 12px;
+      padding: 8px 12px;
+      border-radius: 10px;
       background: transparent;
-      opacity: 0.5;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0.45;
+      transition: all 0.2s;
     }
 
     .step-item.active {
       opacity: 1;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
 
     .step-item.completed {
-      opacity: 0.9;
+      opacity: 0.85;
     }
 
     .step-num {
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 700;
       flex-shrink: 0;
     }
@@ -181,7 +187,6 @@
     .step-item.active .step-num {
       background: var(--primary);
       color: #fff;
-      box-shadow: 0 0 12px var(--primary-glow);
     }
 
     .step-item.completed .step-num {
@@ -190,23 +195,90 @@
     }
 
     .step-label {
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 600;
       line-height: 1.25;
     }
 
-    /* STATUS BANNER */
+    /* STEP INSTRUCTION CARD (LEFT) */
+    .instruction-card {
+      background: rgba(10, 15, 29, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      padding: 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .instruction-card h3 {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .instruction-card ul {
+      margin-left: 15px;
+      font-size: 11.8px;
+      line-height: 1.45;
+      color: #cbd5e1;
+      padding-right: 2px;
+    }
+
+    .instruction-card li { margin-bottom: 5px; }
+
+    .btn-disassembly {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #93c5fd;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 8px;
+      flex-shrink: 0;
+    }
+    .btn-disassembly:hover { background: rgba(255, 255, 255, 0.1); }
+
+    /* RIGHT CONTENT: ACTION & CONSOLE */
+    .main-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    /* ACTION CARD (TOP OF RIGHT PANEL) */
+    .action-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 18px 22px;
+      flex-shrink: 0;
+    }
+
     .status-banner {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 14px 20px;
-      border-radius: 14px;
-      font-size: 14px;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13.5px;
       font-weight: 500;
       background: rgba(59, 130, 246, 0.1);
       border: 1px solid rgba(59, 130, 246, 0.25);
       color: #bfdbfe;
+      margin-bottom: 14px;
     }
 
     .status-banner.warning {
@@ -214,309 +286,85 @@
       border-color: rgba(245, 158, 11, 0.3);
       color: #fde68a;
     }
-
     .status-banner.success {
       background: rgba(16, 185, 129, 0.12);
       border-color: rgba(16, 185, 129, 0.3);
       color: #a7f3d0;
     }
-
     .status-banner.error {
       background: rgba(239, 68, 68, 0.12);
       border-color: rgba(239, 68, 68, 0.3);
       color: #fca5a5;
     }
 
-    /* MAIN CARD */
-    .main-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 24px;
-      padding: 32px 30px;
-      backdrop-filter: blur(16px);
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-      position: relative;
-    }
-
-    .step-content {
-      display: none;
-      animation: fadeIn 0.35s ease-out forwards;
-    }
-
-    .step-content.current {
-      display: block;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .step-title {
-      font-size: 24px;
-      font-weight: 800;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .step-desc {
-      font-size: 15px;
-      color: var(--text-muted);
-      line-height: 1.55;
-      margin-bottom: 22px;
-    }
-
-    /* INSTRUCTION BLOCKS */
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
-      margin-bottom: 24px;
-    }
-
-    .info-box {
-      background: rgba(15, 23, 42, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      padding: 18px 20px;
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-    }
-
-    .info-box.highlight {
-      border-color: rgba(59, 130, 246, 0.3);
-      background: rgba(59, 130, 246, 0.06);
-    }
-
-    .info-box.warning {
-      border-color: rgba(245, 158, 11, 0.35);
-      background: rgba(245, 158, 11, 0.07);
-    }
-
-    .info-box.success {
-      border-color: rgba(16, 185, 129, 0.35);
-      background: rgba(16, 185, 129, 0.07);
-    }
-
-    .info-icon {
-      font-size: 28px;
-      flex-shrink: 0;
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.06);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .info-content h3 {
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 6px;
-      color: #fff;
-    }
-
-    .info-content p, .info-content ul {
-      font-size: 13.5px;
-      color: #cbd5e1;
-      line-height: 1.5;
-    }
-
-    .info-content ul {
-      margin-left: 18px;
-      margin-top: 4px;
-    }
-
-    .info-content li {
-      margin-bottom: 4px;
-    }
-
-    .badge-pill {
-      display: inline-block;
-      padding: 1px 7px;
-      font-size: 11px;
-      font-weight: 700;
-      border-radius: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      margin-right: 4px;
-    }
-    .badge-pill.red { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
-    .badge-pill.green { background: rgba(16, 185, 129, 0.2); color: #86efac; }
-    .badge-pill.yellow { background: rgba(245, 158, 11, 0.2); color: #fde047; }
-    .badge-pill.blue { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
-
-    /* ACTION BUTTONS */
     .btn-action {
       width: 100%;
-      padding: 18px 24px;
-      font-size: 17px;
+      padding: 14px 20px;
+      font-size: 15.5px;
       font-weight: 700;
-      border-radius: 16px;
+      border-radius: 12px;
       border: none;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      gap: 10px;
+      transition: all 0.2s;
     }
 
     .btn-action.primary {
       background: linear-gradient(135deg, #10b981, #059669);
-      color: #ffffff;
-      box-shadow: 0 8px 25px var(--accent-glow);
+      color: #fff;
     }
-
     .btn-action.primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 30px rgba(16, 185, 129, 0.4);
-      filter: brightness(1.08);
+      filter: brightness(1.1);
     }
-
     .btn-action.secondary {
       background: linear-gradient(135deg, #3b82f6, #2563eb);
-      color: #ffffff;
-      box-shadow: 0 8px 25px var(--primary-glow);
+      color: #fff;
     }
-
     .btn-action.secondary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
-      filter: brightness(1.08);
+      filter: brightness(1.1);
     }
-
     .btn-action:disabled {
       opacity: 0.6;
       cursor: not-allowed;
-      transform: none !important;
-      filter: grayscale(0.5);
     }
 
     .spinner {
-      width: 22px;
-      height: 22px;
-      border: 3px solid rgba(255, 255, 255, 0.3);
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
       border-radius: 50%;
       border-top-color: #ffffff;
       animation: spin 0.8s linear infinite;
       display: none;
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading .spinner { display: block; }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .loading .spinner {
-      display: block;
-    }
-
-    /* COLLAPSIBLE GUIDE PANEL */
-    details.guide-panel {
-      background: rgba(15, 23, 42, 0.7);
+    /* CONSOLE CARD (FLEX 1 OF RIGHT PANEL) */
+    .console-card {
+      background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 18px;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
       overflow: hidden;
-      margin-top: 4px;
-    }
-
-    details.guide-panel summary {
-      padding: 16px 20px;
-      font-size: 14.5px;
-      font-weight: 700;
-      cursor: pointer;
-      color: #93c5fd;
-      user-select: none;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: background 0.2s;
-    }
-
-    details.guide-panel summary:hover {
-      background: rgba(255, 255, 255, 0.03);
-    }
-
-    .guide-body {
-      padding: 20px;
-      border-top: 1px solid var(--card-border);
-      background: rgba(10, 15, 29, 0.6);
-      font-size: 13.5px;
-      line-height: 1.6;
-      color: #cbd5e1;
-    }
-
-    .tool-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 10px 0 16px;
-    }
-
-    .tool-chip {
-      padding: 5px 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      font-size: 12px;
-      color: #e2e8f0;
-      font-weight: 500;
-    }
-
-    .guide-step {
-      margin-bottom: 14px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .guide-step:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
-
-    .guide-step-title {
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    /* LIVE TERMINAL CARD */
-    .live-terminal-card {
-      background: rgba(13, 19, 33, 0.95);
-      border: 1px solid var(--card-border);
-      border-radius: 18px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
       position: relative;
-      transition: border-color 0.3s;
     }
 
-    .live-terminal-card.active-working {
-      border-color: rgba(59, 130, 246, 0.4);
-    }
-
-    /* Indeterminate Progress Runner */
+    /* Progress bar runner (only active when working) */
     .progress-bar-track {
       width: 100%;
       height: 3px;
       background: rgba(255, 255, 255, 0.05);
-      overflow: hidden;
       position: relative;
       display: none;
     }
-
-    .live-terminal-card.active-working .progress-bar-track {
-      display: block;
-    }
+    .active-working .progress-bar-track { display: block; }
 
     .progress-bar-runner {
       position: absolute;
@@ -527,92 +375,66 @@
       background: linear-gradient(90deg, transparent, #3b82f6, #10b981, transparent);
       animation: runProgress 1.6s infinite cubic-bezier(0.4, 0, 0.2, 1);
     }
-
     @keyframes runProgress {
       0% { left: -35%; }
       100% { left: 100%; }
     }
 
-    .terminal-header {
+    .console-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 18px;
-      background: rgba(17, 24, 39, 0.85);
+      padding: 10px 16px;
+      background: rgba(10, 15, 29, 0.8);
       border-bottom: 1px solid var(--card-border);
     }
 
-    .terminal-title-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .live-activity-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 4px 10px;
-    }
-
-    .live-spinner {
-      width: 12px;
-      height: 12px;
-      border: 2px solid rgba(59, 130, 246, 0.2);
-      border-top-color: #3b82f6;
-      border-radius: 50%;
-      animation: spinRing 1s linear infinite;
-      display: none;
-    }
-
-    .live-terminal-card.active-working .live-spinner {
-      display: block;
-    }
-
-    .live-static-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #10b981;
-    }
-
-    .live-terminal-card.active-working .live-static-dot {
-      display: none;
-    }
-
-    @keyframes spinRing {
-      to { transform: rotate(360deg); }
-    }
-
-    .live-status-text {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      color: #94a3b8;
-    }
-
-    .live-terminal-card.active-working .live-status-text {
-      color: #93c5fd;
-    }
-
-    .terminal-title {
-      font-size: 13.5px;
-      font-weight: 700;
-      color: #f1f5f9;
-    }
-
-    .terminal-controls {
+    .console-title-group {
       display: flex;
       align-items: center;
       gap: 10px;
     }
 
-    .terminal-hint {
+    .console-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 3px 8px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+    }
+    .active-working .live-dot { display: none; }
+
+    .live-spin {
+      width: 10px;
+      height: 10px;
+      border: 2px solid rgba(59, 130, 246, 0.2);
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: none;
+    }
+    .active-working .live-spin { display: block; }
+
+    .console-status-text {
       font-size: 11px;
-      color: var(--text-muted);
+      font-weight: 700;
+      color: #94a3b8;
+    }
+    .active-working .console-status-text { color: #93c5fd; }
+
+    .console-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
     }
 
     .btn-term-clear {
@@ -620,33 +442,27 @@
       border: 1px solid rgba(255, 255, 255, 0.1);
       color: var(--text-muted);
       border-radius: 6px;
-      padding: 3px 8px;
+      padding: 2px 7px;
       font-size: 11px;
       cursor: pointer;
-      transition: all 0.2s;
     }
-    .btn-term-clear:hover {
-      background: rgba(255, 255, 255, 0.15);
-      color: #fff;
-    }
+    .btn-term-clear:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
 
-    .log-terminal {
+    .console-body {
       background: #040711;
-      padding: 16px 18px;
-      max-height: 250px;
-      min-height: 180px;
+      padding: 12px 16px;
+      flex: 1;
       overflow-y: auto;
       font-family: var(--font-mono);
-      font-size: 12.5px;
+      font-size: 12px;
       color: #94a3b8;
-      line-height: 1.65;
+      line-height: 1.6;
     }
 
     .log-line {
       margin-bottom: 4px;
       word-break: break-word;
     }
-
     .log-line.success { color: #34d399; font-weight: 500; }
     .log-line.warning { color: #fbbf24; }
     .log-line.error { color: #f87171; font-weight: 600; }
@@ -654,8 +470,8 @@
     .log-line.explain {
       background: rgba(99, 102, 241, 0.1);
       border-left: 3px solid #818cf8;
-      padding: 3px 10px;
-      border-radius: 0 6px 6px 0;
+      padding: 3px 8px;
+      border-radius: 0 4px 4px 0;
       color: #c7d2fe;
       margin: 4px 0;
     }
@@ -665,9 +481,10 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 10px;
-      font-size: 13px;
+      padding: 6px 10px 0;
+      font-size: 12px;
       color: var(--text-muted);
+      flex-shrink: 0;
     }
 
     .btn-reset {
@@ -675,334 +492,295 @@
       border: none;
       color: var(--text-muted);
       cursor: pointer;
+      font-size: 12px;
+      padding: 2px 6px;
+    }
+    .btn-reset:hover { color: #fff; }
+
+    /* MODAL: DISASSEMBLY */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-card {
+      background: #0d1527;
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      max-width: 680px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid var(--card-border);
+    }
+    .modal-head h2 { font-size: 15px; font-weight: 700; color: #fff; }
+    .btn-close-modal {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .modal-content {
+      padding: 18px 20px;
+      overflow-y: auto;
       font-size: 13px;
-      padding: 4px 8px;
-      border-radius: 6px;
-      transition: all 0.2s;
+      line-height: 1.6;
+      color: #cbd5e1;
     }
+    .modal-content h4 { color: #fff; margin: 12px 0 4px; font-size: 13.5px; }
 
-    .btn-reset:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    @media (max-width: 640px) {
-      .stepper {
-        grid-template-columns: 1fr 1fr;
-      }
-      header {
-        flex-direction: column;
-        gap: 14px;
-        align-items: flex-start;
-      }
-      .status-badges {
-        width: 100%;
-        justify-content: space-between;
-      }
+    @media (max-width: 860px) {
+      body { height: auto; overflow: auto; }
+      .workspace { grid-template-columns: 1fr; }
+      .console-card { min-height: 250px; }
     }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    
-    <!-- HEADER -->
-    <header>
-      <div class="brand">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-        </div>
-        <div class="brand-text">
-          <h1>Geely ADB Unlock Master</h1>
-          <p>
-            <span>Разблокировка отладки и установка APK</span>
-            <span class="tag-model">EX5 EM-i / Belgee X80</span>
-          </p>
-        </div>
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
       </div>
-
-      <div class="header-step-pill" id="header-step-pill">
-        Шаг 1 из 4 • Подготовка
-      </div>
-    </header>
-
-    <!-- STEPPER -->
-    <div class="stepper">
-      <div class="step-item active" id="step-ind-1">
-        <div class="step-num">1</div>
-        <div class="step-label">Подготовка<br>и перемычка</div>
-      </div>
-      <div class="step-item" id="step-ind-2">
-        <div class="step-num">2</div>
-        <div class="step-label">Сброс на<br>заводские настройки</div>
-      </div>
-      <div class="step-item" id="step-ind-3">
-        <div class="step-num">3</div>
-        <div class="step-label">Снятие перемычки<br>и проверка</div>
-      </div>
-      <div class="step-item" id="step-ind-4">
-        <div class="step-num">4</div>
-        <div class="step-label">Снятие защиты<br>Parrot и финал</div>
+      <div class="brand-text">
+        <h1>Geely ADB Unlock Master <span class="tag-model">EX5 EM-i / Belgee X80</span></h1>
       </div>
     </div>
-
-    <!-- STATUS BANNER -->
-    <div class="status-banner" id="status-banner">
-      <span id="banner-text">Подключите ноутбук к сервисному USB-порту авто и следуйте шагам мастера.</span>
+    <div class="header-step-pill" id="header-step-pill">
+      Шаг 1 из 4 • Подготовка
     </div>
+  </header>
 
-    <!-- MAIN INTERACTIVE CARD -->
-    <main class="main-card">
+  <!-- 2-COLUMN WORKSPACE -->
+  <div class="workspace">
+
+    <!-- LEFT SIDEBAR: STEPPER & MANUAL ACTIONS -->
+    <aside class="sidebar">
       
-      <!-- STEP 1: PREPARATION & JUMPER -->
-      <section class="step-content current" id="step-1">
-        <h2 class="step-title">Шаг 1: Подключение и установка перемычки</h2>
-        <p class="step-desc">Для Geely EX5 EM-i и Belgee X80 сервисный режим временно активируется аппаратной перемычкой на плате головного устройства (DHU) при сбросе настроек.</p>
+      <!-- STEPPER -->
+      <div class="stepper">
+        <div class="step-item active" id="step-ind-1">
+          <div class="step-num">1</div>
+          <div class="step-label">Подготовка и перемычка</div>
+        </div>
+        <div class="step-item" id="step-ind-2">
+          <div class="step-num">2</div>
+          <div class="step-label">Сброс на заводские настройки</div>
+        </div>
+        <div class="step-item" id="step-ind-3">
+          <div class="step-num">3</div>
+          <div class="step-label">Снятие перемычки</div>
+        </div>
+        <div class="step-item" id="step-ind-4">
+          <div class="step-num">4</div>
+          <div class="step-label">Снятие защиты и финал</div>
+        </div>
+      </div>
+
+      <!-- DYNAMIC INSTRUCTIONS CARD FOR ACTIVE STEP -->
+      <div class="instruction-card" id="instruction-card">
         
-        <div class="info-grid">
-          <div class="info-box highlight">
-            <div class="info-icon">🔌</div>
-            <div class="info-content">
-              <h3>1. Кабель USB (папа ➔ папа)</h3>
-              <p>Соедините ноутбук и автомобиль кабелем <b>USB-A ↔ USB-A</b> через <b>штатный сервисный разъем USB-A</b> на нижней панели центрального тоннеля (снятая крышка с USB и прикуривателем).</p>
-              <p style="margin-top: 4px; font-size: 12.5px; color: #fca5a5;">
-                <span class="badge-pill red">Важно</span>Разъем Type-C на корпусе самого блока DHU <b>не предназначен</b> для отладки ADB!
-              </p>
-            </div>
-          </div>
-
-          <div class="info-box">
-            <div class="info-icon">📍</div>
-            <div class="info-content">
-              <h3>2. Установка перемычки в блок DHU</h3>
-              <p>Открутите крышку DHU (4 винта Torx T8). У правого края платы возле радиатора найдите <b>НИЖНЮЮ группу позолоченных контактов</b>.</p>
-              <ul>
-                <li>Вставьте перемычку (скрученную витую пару) во <b>2-е по счету контакты сверху</b> нижней колодки (два соседних контакта).</li>
-                <li>Убедитесь, что жилы надежно замкнуты между собой, а провод уложен в ребра радиатора.</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="info-box warning">
-            <div class="info-icon">🚗</div>
-            <div class="info-content">
-              <h3>3. Подключение разъемов и запуск автомобиля</h3>
-              <ul>
-                <li>Положите блок DHU на место и подключите все разъемы. <b>Белую колодку питания с красным проводом подключайте ПОСЛЕДНЕЙ!</b></li>
-                <li><b>Обязательно прикрутите винт массы</b> на нижнем креплении DHU (без провода массы отключаются камеры 360, люк и датчики).</li>
-                <li>Включите питание автомобиля (нажмите <b>кнопку START без выжимания педали тормоза</b> или запустите мультимедиа), чтобы экран ГУ включился.</li>
-              </ul>
-            </div>
-          </div>
+        <!-- STEP 1 INSTRUCTIONS -->
+        <div class="step-info current" id="step-info-1">
+          <h3>🔌 Инструкция для рук:</h3>
+          <ul>
+            <li><b>Кабель:</b> ноутбук соедините кабелем <b>USB-A ↔ USB-A</b> со штатным разъёмом на нижней панели тоннеля (снятая крышка USB). <i>Разъём Type-C на корпусе DHU не использовать!</i></li>
+            <li><b>Перемычка:</b> открутите крышку DHU (T8). На плате справа у радиатора найдите <b>НИЖНЮЮ колодку</b> и замкните <b>2-е пины сверху</b> (два соседних контакта).</li>
+            <li><b>Разъёмы:</b> колодку питания с красным проводом подключайте <b>ПОСЛЕДНЕЙ</b>! Обязательно прикрутите <b>винт массы</b> DHU.</li>
+            <li><b>Питание авто:</b> нажмите <b>кнопку START без тормоза</b>, чтобы запустился экран ГУ.</li>
+          </ul>
         </div>
 
-        <button class="btn-action primary" id="btn-step-1">
-          <span>Перемычка и кабель на месте, перейти к сбросу на заводские настройки</span>
-          <div class="spinner"></div>
-        </button>
+        <!-- STEP 2 INSTRUCTIONS -->
+        <div class="step-info" id="step-info-2" style="display: none;">
+          <h3>⚙️ Действие на экране авто:</h3>
+          <ul>
+            <li>На экране ГУ зайдите в: <b>Настройки ➔ Система ➔ Сброс на заводские настройки</b> (или <i>Восстановление заводских настроек</i>).</li>
+            <li>Подтвердите сброс. Экран погаснет и начнёт перезагрузку.</li>
+            <li>Когда на приборной панели появится анимация, программа перехватит 20-секундное сервисное окно.</li>
+            <li><b>Ничего на ПК не нажимайте</b> — фиксация VHAL произойдёт сама!</li>
+          </ul>
+        </div>
+
+        <!-- STEP 3 INSTRUCTIONS -->
+        <div class="step-info" id="step-info-3" style="display: none;">
+          <h3>✂️ Снятие перемычки:</h3>
+          <ul>
+            <li>Выключите питание авто (кнопка START).</li>
+            <li>Аккуратно <b>выньте перемычку</b> из контактных площадок платы DHU.</li>
+            <li>Прикрутите крышку DHU (4 винта Torx T8).</li>
+            <li>Включите питание авто (кабель USB остаётся подключенным к ПК).</li>
+          </ul>
+        </div>
+
+        <!-- STEP 4 INSTRUCTIONS -->
+        <div class="step-info" id="step-info-4" style="display: none;">
+          <h3>🛡️ Снятие системной защиты:</h3>
+          <ul>
+            <li>Программа отключает проверку подписей Parrot в <code>build.prop</code>.</li>
+            <li>Отключается служба <code>AutoInstallVerifier</code>.</li>
+            <li>Устанавливается системный тумблер <code>Geely-ADB-Toggle</code>.</li>
+          </ul>
+        </div>
+
+        <!-- STEP 5 INSTRUCTIONS -->
+        <div class="step-info" id="step-info-5" style="display: none;">
+          <h3>🎉 Готово к сборке:</h3>
+          <ul>
+            <li>Верните тоннель на место, закрутите болты в ящике подлокотника и под воздуховодами.</li>
+            <li>Соберите накладки и бардачок.</li>
+            <li>Для установки приложений нажмите кнопку открытия <b>GeelyTune</b>.</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <button class="btn-disassembly" id="btn-open-modal">
+        <span>🛠️ Шпаргалка по разборке салона</span>
+      </button>
+
+    </aside>
+
+    <!-- RIGHT MAIN PANEL: ACTIONS & LIVE CONSOLE -->
+    <main class="main-panel">
+      
+      <!-- ACTION CARD -->
+      <section class="action-card">
+        <div class="status-banner" id="status-banner">
+          <span id="banner-text">Подключите кабель к сервисному порту USB авто и следуйте подсказкам.</span>
+        </div>
+
+        <!-- STEP 1 ACTION -->
+        <div class="action-step current" id="action-step-1">
+          <button class="btn-action primary" id="btn-step-1">
+            <span>Перемычка установлена, перейти к сбросу на заводские настройки</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
+
+        <!-- STEP 2 ACTION -->
+        <div class="action-step" id="action-step-2" style="display: none;">
+          <button class="btn-action secondary" id="btn-step-2" disabled>
+            <span>Ожидаем сброс на заводские настройки (слушаем порт)...</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
+
+        <!-- STEP 3 ACTION -->
+        <div class="action-step" id="action-step-3" style="display: none;">
+          <button class="btn-action primary" id="btn-step-3">
+            <span>Перемычка вынута, перезагрузить ГУ для проверки</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
+
+        <!-- STEP 4 ACTION -->
+        <div class="action-step" id="action-step-4" style="display: none;">
+          <button class="btn-action primary" id="btn-step-4">
+            <span>Снять ограничения и завершить настройку</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
+
+        <!-- STEP 5 ACTION -->
+        <div class="action-step" id="action-step-5" style="display: none;">
+          <button class="btn-action primary" id="btn-open-geelytune">
+            <span>Открыть GeelyTune для установки приложений</span>
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+          </button>
+        </div>
       </section>
 
-      <!-- STEP 2: FACTORY RESET & VHAL CATCH -->
-      <section class="step-content" id="step-2">
-        <h2 class="step-title">Шаг 2: Сброс на заводские настройки</h2>
-        <p class="step-desc">Скрипт непрерывно сканирует USB-порт. На экране автомобиля выполните сброс на заводские настройки — в момент перезагрузки программа перехватит 20-секундное окно и навсегда зафиксирует ADB.</p>
-        
-        <div class="info-grid">
-          <div class="info-box highlight">
-            <div class="info-icon">⚙️</div>
-            <div class="info-content">
-              <h3>Действие на центральном экране автомобиля:</h3>
-              <p>Зайдите в меню: <b>Настройки ➔ Система ➔ Сброс на заводские настройки</b> (в некоторых версиях: <i>Восстановление заводских настроек</i>) и подтвердите действие.</p>
-              <ul>
-                <li>Экран ГУ погаснет и начнется перезагрузка.</li>
-                <li>Когда на приборной панели появится логотип/анимация (экран ГУ может еще быть черным), на ПК появится устройство <code>ADB Gadget</code>.</li>
-                <li>В журнале операций ниже вы увидите активный перехват и подачу команды <code>USB_SWITCH=0</code>.</li>
-                <li><b>Ничего не нажимайте на компьютере</b> — скрипт сам перехватит окно и зафиксирует порт!</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="info-box warning">
-            <div class="info-icon">⚠️</div>
-            <div class="info-content">
-              <h3>Предостережение из опыта первопроходцев:</h3>
-              <p>Перезагрузка двумя кнопками на руле (голосовая + правая OK) <b>НЕ открывает сервисное окно!</b> Требуется именно штатный пункт «Сброс на заводские настройки» из меню экрана.</p>
-            </div>
-          </div>
+      <!-- CONSOLE CARD -->
+      <section class="console-card" id="logs-card">
+        <div class="progress-bar-track">
+          <div class="progress-bar-runner"></div>
         </div>
-
-        <button class="btn-action secondary" id="btn-step-2" disabled>
-          <span>Ожидаем сброс на заводские настройки (слушаем порт)...</span>
-          <div class="spinner"></div>
-        </button>
-      </section>
-
-      <!-- STEP 3: UNPLUG JUMPER & REBOOT -->
-      <section class="step-content" id="step-3">
-        <h2 class="step-title">Шаг 3: Снимите перемычку</h2>
-        <p class="step-desc">Успешно! VHAL-свойство <code>SETTING_FUNC_USB_SWITCH=0</code> установлено. Сервисный порт ADB зафиксирован в системе навсегда. Теперь перемычка больше не нужна.</p>
-        
-        <div class="info-grid">
-          <div class="info-box">
-            <div class="info-icon">✂️</div>
-            <div class="info-content">
-              <h3>Порядок действий:</h3>
-              <ul>
-                <li>Выключите питание автомобиля (кнопкой START).</li>
-                <li>Аккуратно <b>извлеките перемычку</b> из контактных площадок платы DHU.</li>
-                <li>Закрутите крышку блока DHU на 4 винта Torx T8.</li>
-                <li>Убедитесь, что все разъемы подключены (питание последним, провод массы прикручен).</li>
-                <li>Включите питание автомобиля кнопкой START (кабель USB остается подключенным к ноутбуку).</li>
-              </ul>
+        <div class="console-header">
+          <div class="console-title-group">
+            <div class="console-badge">
+              <span class="live-dot"></span>
+              <div class="live-spin"></div>
+              <span class="console-status-text" id="live-status-text">ГОТОВ</span>
             </div>
+            <div class="console-title">Журнал операций и пояснения скрипта</div>
           </div>
+          <button class="btn-term-clear" id="btn-clear-logs" title="Очистить экран журнала">Очистить</button>
         </div>
-
-        <button class="btn-action primary" id="btn-step-3">
-          <span>Перемычка вынута, перезагрузить ГУ для проверки</span>
-          <div class="spinner"></div>
-        </button>
-      </section>
-
-      <!-- STEP 4: UNLOCK PARROT & INSTALL TOGGLE -->
-      <section class="step-content" id="step-4">
-        <h2 class="step-title">Шаг 4: Снятие защиты Parrot и установка тумблера</h2>
-        <p class="step-desc">Отключение верификаторов подписи Parrot (чтобы не было ошибки <code>INSTALL_PARSE_FAILED_NO_CERTIFICATES</code>) и установка системного переключателя ADB.</p>
-        
-        <div class="info-grid">
-          <div class="info-box success">
-            <div class="info-icon">🛡️</div>
-            <div class="info-content">
-              <h3>Автоматические операции:</h3>
-              <ul>
-                <li>Установка параметра <code>ro.vendor.ecarx.app_verify=false</code> в <code>/product/build.prop</code>.</li>
-                <li>Отключение службы проверки установки приложений <code>com.ecarx.xsfinstallverifier</code>.</li>
-                <li>Установка приложения <b>Geely-ADB-Toggle</b> в гостевой профиль ГУ (<code>--user current</code>).</li>
-              </ul>
-            </div>
-          </div>
+        <div class="console-body" id="log-terminal">
+          <div class="log-line info">🟢 Готов к работе. Следуйте пошаговым подсказкам мастера.</div>
+          <div class="log-line explain">💡 Шаг 1: Соедините ноутбук кабелем USB-A ↔ USB-A со штатным портом тоннеля и установите перемычку в блок DHU (см. инструкцию слева). Затем нажмите зелёную кнопку.</div>
         </div>
-
-        <button class="btn-action primary" id="btn-step-4">
-          <span>Снять защиту и завершить настройку</span>
-          <div class="spinner"></div>
-        </button>
-      </section>
-
-      <!-- STEP 5: FINISH -->
-      <section class="step-content" id="step-5">
-        <h2 class="step-title">🎉 Разблокировка успешно завершена!</h2>
-        <p class="step-desc">Постоянный ADB активен, ограничения на установку APK сняты, тумблер управления доступен в меню авто. Теперь можно собирать салон автомобиля.</p>
-        
-        <div class="info-grid">
-          <div class="info-box success">
-            <div class="info-icon">🚘</div>
-            <div class="info-content">
-              <h3>Сборка салона в обратном порядке:</h3>
-              <ul>
-                <li>Закрепите блок DHU на направляющие и закрутите 4 винта Torx T25 (не забудьте провод массы!).</li>
-                <li>Провода USB/прикуривателя верните в хомут, вставьте тоннель вперед на место.</li>
-                <li>Закрутите 2 болта на дне ящика подлокотника и крепеж под дефлекторами воздуховодов.</li>
-                <li>Установите верхнюю накладку с шайбой (подключите беспроводную зарядку и климат).</li>
-                <li>Установите бардачок пассажира (2 разъема подсветки) и нижнюю водительскую панель.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <button class="btn-action primary" id="btn-open-geelytune">
-          <span>Открыть GeelyTune для установки приложений</span>
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
-        </button>
       </section>
 
     </main>
 
-    <!-- COLLAPSIBLE DISASSEMBLY GUIDE -->
-    <details class="guide-panel">
-      <summary>
-        <span>🛠️ Инструкция по разбору салона для доступа к блоку DHU (EX5 EM-i / Belgee X80)</span>
-        <span style="font-size: 11px; opacity: 0.7;">нажмите, чтобы открыть шпаргалку</span>
-      </summary>
-      <div class="guide-body">
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <span>Geely ADB Unlock Master • v2.1.4.5+</span>
+    <div style="display: flex; gap: 14px;">
+      <button class="btn-reset" id="btn-reset-wizard">Начать сначала</button>
+      <button class="btn-reset" id="btn-shutdown" style="color: #ef4444;">Завершить работу</button>
+    </div>
+  </footer>
+
+  <!-- MODAL: DISASSEMBLY GUIDE -->
+  <div class="modal-overlay" id="modal-disassembly">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>🛠️ Шпаргалка по разборке салона (EX5 EM-i / Belgee X80)</h2>
+        <button class="btn-close-modal" id="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-content">
+        <h4>Необходимый инструмент:</h4>
+        <p>Отвертки PH2 (длинная и короткая), Torx T25 (для DHU), Torx T8 (крышка DHU), пластиковый съёмник, тонкие плоскогубцы, кабель USB-A ↔ USB-A.</p>
         
-        <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">Необходимый инструмент:</div>
-        <div class="tool-list">
-          <span class="tool-chip">🪛 Отвертки PH2 (длинная и короткая)</span>
-          <span class="tool-chip">🔩 Torx T25 (крепление DHU)</span>
-          <span class="tool-chip">🔩 Torx T8 (крышка DHU)</span>
-          <span class="tool-chip">🧰 Пластиковый съемник клипс</span>
-          <span class="tool-chip">🔧 Тонкие плоскогубцы (для фиксаторов)</span>
-          <span class="tool-chip">🔌 Кабель USB-A ↔ USB-A («папа-папа»)</span>
-        </div>
+        <h4>1. Сторона водителя:</h4>
+        <p>Снять боковую накладку торпедо. Открутить винты нижней панели. <b>Ручка капота:</b> не отщёлкивать пластик, а открутить планку целиком (5 винтов)! Лампочка в ногах — поворот на 90° против часовой. Снять накладку у педали газа (1 болт + 3 винта тоннеля).</p>
 
-        <div class="guide-step">
-          <div class="guide-step-title">1. Сторона водителя</div>
-          <p>Снимите боковую накладку торпедо пластиковым съемником (поддевать снизу). Открутите винты нижней панели. <b>Осторожно с ручкой капота:</b> пластиковый фиксатор легко ломается — лучше открутить всю планку целиком (5 винтов). Лампочка подсветки снимается поворотом на 90° против часовой стрелки. Снимите боковую панель у педали газа (под ней скрытый болт тоннеля). Выкрутите крепеж тоннеля (1 болт + 3 винта).</p>
-        </div>
+        <h4>2. Сторона пассажира:</h4>
+        <p>Снять боковую накладку и длинную планку (3 винта в торце). Выкрутить 7 винтов бардачка (4 вверху, 3 внизу). Снять бардачок (2 разъёма подсветки). Открутить крепеж тоннеля (1 болт + 3 винта).</p>
 
-        <div class="guide-step">
-          <div class="guide-step-title">2. Сторона пассажира</div>
-          <p>Снимите боковую накладку торпедо. Открутите 3 винта в торце и снимите длинную декоративную накладку. Выкрутите 7 винтов бардачка (4 вверху, 3 внизу). Потяните бардачок на себя, отключите 2 разъема подсветки. Снимите нижнюю боковую накладку тоннеля и выкрутите крепеж (1 болт + 3 винта).</p>
-        </div>
+        <h4>3. Верхняя накладка с шайбой:</h4>
+        <p>Опустить рулевую колонку вниз, открутить 2 скрытых винта. Снять накладку, отключить беспроводную зарядку и климат.</p>
 
-        <div class="guide-step">
-          <div class="guide-step-title">3. Верхняя накладка центрального тоннеля</div>
-          <p>Опустите рулевую колонку максимально вниз. Отщелкните правый нижний угол накладки над рулем и выкрутите скрытый винт. Выкрутите второй винт с противоположной стороны. Откройте подлокотник, съемником подденьте накладку со стороны ящика и потяните вверх. Отключите разъемы модуля беспроводной зарядки и климата.</p>
-        </div>
+        <h4>4. Сдвиг тоннеля и блок DHU:</h4>
+        <p>Открутить крепеж под воздуховодами (2 винта, 2 болта) и 2 болта на дне подлокотника. Надавить изнутри на крышку USB/прикуривателя и поддеть её снаружи. Сдвинуть тоннель назад.</p>
 
-        <div class="guide-step">
-          <div class="guide-step-title">4. Центральный тоннель и доступ к DHU</div>
-          <p>Выкрутите крепеж под воздуховодами (2 винта и 2 болта). На дне подлокотника снимите коврик и открутите 2 болта. Освободите клипсы проводов. Сдвиньте тоннель немного назад. Снимите крышку с разъемами USB и прикуривателем (надавить изнутри и поддеть съемником снаружи). Сдвиньте тоннель еще дальше назад.</p>
-        </div>
-
-        <div class="guide-step">
-          <div class="guide-step-title">5. Снятие и подключение DHU</div>
-          <p>Отключите разъем питания (белая колодка с красным проводом снизу — <b>первой!</b>). Отключите остальные разъемы. Выкрутите 4 винта Torx T25 (запомните нижний винт с проводом массы). Снимите блок DHU. Открутите 4 винта Torx T8 крышки и установите перемычку в нижнюю колодку во 2-е пины сверху. Подключите разъемы обратно (питание последним, провод массы прикручен!).</p>
-        </div>
-
+        <h4>5. Блок DHU:</h4>
+        <p>Белую колодку питания с красным проводом отключать <b>первой</b> (при сборке подключать последней!). Открутить 4 винта Torx T25 (запомнить провод массы на нижнем винте!). На плате снять крышку (4 винта Torx T8), перемычка — в нижней колодке, 2-е пины сверху.</p>
       </div>
-    </details>
-
-    <!-- LIVE TERMINAL LOGS -->
-    <section class="live-terminal-card" id="logs-card">
-      <div class="progress-bar-track" id="term-progress-track">
-        <div class="progress-bar-runner"></div>
-      </div>
-      <div class="terminal-header">
-        <div class="terminal-title-group">
-          <div class="live-activity-badge">
-            <span class="live-static-dot"></span>
-            <div class="live-spinner"></div>
-            <span class="live-status-text" id="live-status-text">ГОТОВ</span>
-          </div>
-          <div class="terminal-title">Журнал операций и пояснения скрипта</div>
-        </div>
-        <div class="terminal-controls">
-          <span class="terminal-hint">Автоматическая фиксация шагов</span>
-          <button class="btn-term-clear" id="btn-clear-logs" title="Очистить экран журнала">Очистить</button>
-        </div>
-      </div>
-      <div class="log-terminal" id="log-terminal">
-        <div class="log-line">Инициализация веб-интерфейса мастера...</div>
-      </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer>
-      <span>Geely ADB Unlock Master • v2.1.4.5+</span>
-      <div style="display: flex; gap: 16px;">
-        <button class="btn-reset" id="btn-reset-wizard">Начать сначала</button>
-        <button class="btn-reset" id="btn-shutdown" style="color: #ef4444;">Завершить работу</button>
-      </div>
-    </footer>
-
+    </div>
   </div>
 
   <script>
     let pollInterval = null;
     let currentStep = 1;
     let isWorking = false;
+    let lastLogsJson = '';
 
     // DOM Elements
     const bannerText = document.getElementById('banner-text');
@@ -1014,14 +792,31 @@
     const btnClearLogs = document.getElementById('btn-clear-logs');
     const btnReset = document.getElementById('btn-reset-wizard');
 
-    // Step Buttons
+    // Buttons
     const btnStep1 = document.getElementById('btn-step-1');
     const btnStep2 = document.getElementById('btn-step-2');
     const btnStep3 = document.getElementById('btn-step-3');
     const btnStep4 = document.getElementById('btn-step-4');
     const btnOpenGeelytune = document.getElementById('btn-open-geelytune');
 
-    // Stepper indicators
+    // Modal
+    const modalDisassembly = document.getElementById('modal-disassembly');
+    const btnOpenModal = document.getElementById('btn-open-modal');
+    const btnCloseModal = document.getElementById('btn-close-modal');
+
+    if (btnOpenModal && modalDisassembly) {
+      btnOpenModal.addEventListener('click', () => modalDisassembly.classList.add('open'));
+    }
+    if (btnCloseModal && modalDisassembly) {
+      btnCloseModal.addEventListener('click', () => modalDisassembly.classList.remove('open'));
+    }
+    if (modalDisassembly) {
+      modalDisassembly.addEventListener('click', (e) => {
+        if (e.target === modalDisassembly) modalDisassembly.classList.remove('open');
+      });
+    }
+
+    // Switch step view
     function updateStepper(step) {
       currentStep = step;
       const stepNames = {
@@ -1035,6 +830,7 @@
         headerStepPill.textContent = stepNames[step] || `Шаг ${step} из 4`;
       }
 
+      // Stepper sidebar
       for (let i = 1; i <= 4; i++) {
         const ind = document.getElementById(`step-ind-${i}`);
         if (!ind) continue;
@@ -1046,21 +842,24 @@
         }
       }
 
-      // Switch step content
+      // Sidebar info blocks
       for (let i = 1; i <= 5; i++) {
-        const sec = document.getElementById(`step-${i}`);
-        if (sec) {
-          sec.classList.toggle('current', i === step);
-        }
+        const info = document.getElementById(`step-info-${i}`);
+        if (info) info.style.display = (i === step) ? 'block' : 'none';
+      }
+
+      // Action blocks (right top)
+      for (let i = 1; i <= 5; i++) {
+        const actionSec = document.getElementById(`action-step-${i}`);
+        if (actionSec) actionSec.style.display = (i === step) ? 'block' : 'none';
       }
     }
 
-    let lastLogsJson = '';
     // Append logs
     function updateLogs(logs) {
       if (!logs || !logs.length) return;
       const currentJson = JSON.stringify(logs);
-      if (currentJson === lastLogsJson) return; // Do not touch DOM if logs did not change
+      if (currentJson === lastLogsJson) return;
       lastLogsJson = currentJson;
 
       logTerminal.innerHTML = logs.map(l => {
@@ -1079,11 +878,10 @@
       return text.replace(/[&<>"']/g, m => map[m]);
     }
 
-    // Clear logs UI
     if (btnClearLogs) {
       btnClearLogs.addEventListener('click', () => {
         lastLogsJson = '';
-        logTerminal.innerHTML = '<div class="log-line info">Экран журнала очищен. Новые события появятся при поступлении...</div>';
+        logTerminal.innerHTML = '<div class="log-line info">Экран журнала очищен пользователем.</div>';
       });
     }
 
@@ -1109,26 +907,18 @@
         if (!res.ok) return;
         const data = await res.json();
 
-        // Update Status banner
         const newMsg = data.status_message || 'Готов к работе';
-        if (bannerText.textContent !== newMsg) {
-          bannerText.textContent = newMsg;
-        }
-        const expectedClass = 'status-banner' + (data.status === 'error' ? ' error' : (data.status === 'success' ? ' success' : (data.status === 'working' ? ' warning' : '')));
-        if (statusBanner.className !== expectedClass) {
-          statusBanner.className = expectedClass;
-        }
+        if (bannerText.textContent !== newMsg) bannerText.textContent = newMsg;
 
-        // Update step if changed from backend
+        const expectedClass = 'status-banner' + (data.status === 'error' ? ' error' : (data.status === 'success' ? ' success' : (data.status === 'working' ? ' warning' : '')));
+        if (statusBanner.className !== expectedClass) statusBanner.className = expectedClass;
+
         if (data.step && data.step !== currentStep) {
           updateStepper(data.step);
         }
 
-        // Loading states and active animations (running progress bar, spinner)
         isWorking = data.status === 'working';
-        if (logsCard) {
-          logsCard.classList.toggle('active-working', isWorking);
-        }
+        if (logsCard) logsCard.classList.toggle('active-working', isWorking);
         if (liveStatusText) {
           liveStatusText.textContent = isWorking ? 'В ПРОЦЕССЕ' : (data.device_state === 'connected' ? 'ГУ ПОДКЛЮЧЕНО' : 'ГОТОВ');
         }
@@ -1147,6 +937,7 @@
       }
     }
 
+    // Event listeners
     btnReset.addEventListener('click', async () => {
       if (confirm('Сбросить мастер к первому шагу?')) {
         await apiAction('reset_wizard');
@@ -1186,7 +977,6 @@
       await apiAction('open_geelytune');
     });
 
-    // Start polling
     pollStatus();
     pollInterval = setInterval(pollStatus, 1000);
   </script>
