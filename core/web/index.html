@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Мастер разблокировки Geely ADB</title>
+  <title>Мастер разблокировки Geely ADB • EX5 EM-i / Belgee X80</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #090d16;
-      --card-bg: rgba(17, 24, 39, 0.85);
+      --card-bg: rgba(17, 24, 39, 0.88);
       --card-border: rgba(255, 255, 255, 0.08);
       --card-hover: rgba(255, 255, 255, 0.12);
       --text: #f3f4f6;
@@ -20,6 +20,7 @@
       --primary: #3b82f6;
       --primary-glow: rgba(59, 130, 246, 0.25);
       --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.25);
       --danger: #ef4444;
       --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-mono: 'JetBrains Mono', Consolas, monospace;
@@ -36,7 +37,7 @@
       background-image: 
         radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
         radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.7) 0px, transparent 100%);
+        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.75) 0px, transparent 100%);
       color: var(--text);
       font-family: var(--font);
       min-height: 100vh;
@@ -48,7 +49,7 @@
 
     .container {
       width: 100%;
-      max-width: 900px;
+      max-width: 920px;
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -62,9 +63,9 @@
       padding: 16px 24px;
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 18px;
+      border-radius: 20px;
       backdrop-filter: blur(16px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
     }
 
     .brand {
@@ -74,14 +75,15 @@
     }
 
     .brand-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
       background: linear-gradient(135deg, #10b981, #3b82f6);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 14px var(--accent-glow);
+      box-shadow: 0 4px 16px var(--accent-glow);
+      flex-shrink: 0;
     }
 
     .brand-icon svg {
@@ -102,6 +104,19 @@
     .brand-text p {
       font-size: 13px;
       color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tag-model {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      font-weight: 600;
+      font-size: 11px;
     }
 
     .status-badges {
@@ -113,8 +128,8 @@
     .badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
+      gap: 7px;
+      padding: 6px 14px;
       border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
@@ -130,19 +145,19 @@
 
     .badge.active .dot {
       background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
+      box-shadow: 0 0 10px var(--accent);
     }
 
     .badge.disconnected .dot {
       background: var(--warning);
-      box-shadow: 0 0 8px var(--warning);
+      box-shadow: 0 0 10px var(--warning);
     }
 
     .btn-clean-adb {
       background: rgba(239, 68, 68, 0.12);
       color: #fca5a5;
       border: 1px solid rgba(239, 68, 68, 0.25);
-      padding: 6px 12px;
+      padding: 7px 13px;
       border-radius: 10px;
       font-size: 12px;
       font-weight: 600;
@@ -162,7 +177,7 @@
       padding: 6px;
       background: rgba(17, 24, 39, 0.5);
       border: 1px solid var(--card-border);
-      border-radius: 16px;
+      border-radius: 18px;
     }
 
     .step-item {
@@ -203,7 +218,7 @@
     .step-item.active .step-num {
       background: var(--primary);
       color: #fff;
-      box-shadow: 0 0 10px var(--primary-glow);
+      box-shadow: 0 0 12px var(--primary-glow);
     }
 
     .step-item.completed .step-num {
@@ -214,7 +229,39 @@
     .step-label {
       font-size: 13px;
       font-weight: 600;
-      line-height: 1.2;
+      line-height: 1.25;
+    }
+
+    /* STATUS BANNER */
+    .status-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 500;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      color: #bfdbfe;
+    }
+
+    .status-banner.warning {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fde68a;
+    }
+
+    .status-banner.success {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #a7f3d0;
+    }
+
+    .status-banner.error {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
     }
 
     /* MAIN CARD */
@@ -222,11 +269,10 @@
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 24px;
-      padding: 36px 32px;
+      padding: 32px 30px;
       backdrop-filter: blur(16px);
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
       position: relative;
-      overflow: hidden;
     }
 
     .step-content {
@@ -244,64 +290,108 @@
     }
 
     .step-title {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 800;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
     .step-desc {
-      font-size: 16px;
+      font-size: 15px;
       color: var(--text-muted);
-      line-height: 1.6;
+      line-height: 1.55;
+      margin-bottom: 22px;
+    }
+
+    /* INSTRUCTION BLOCKS */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
       margin-bottom: 24px;
     }
 
-    /* ILLUSTRATION BOX */
-    .illustration-box {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px dashed rgba(255, 255, 255, 0.15);
+    .info-box {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 24px;
+      padding: 18px 20px;
       display: flex;
-      align-items: center;
-      gap: 20px;
+      gap: 16px;
+      align-items: flex-start;
     }
 
-    .ill-icon {
-      font-size: 40px;
+    .info-box.highlight {
+      border-color: rgba(59, 130, 246, 0.3);
+      background: rgba(59, 130, 246, 0.06);
+    }
+
+    .info-box.warning {
+      border-color: rgba(245, 158, 11, 0.35);
+      background: rgba(245, 158, 11, 0.07);
+    }
+
+    .info-box.success {
+      border-color: rgba(16, 185, 129, 0.35);
+      background: rgba(16, 185, 129, 0.07);
+    }
+
+    .info-icon {
+      font-size: 28px;
       flex-shrink: 0;
-      background: rgba(255, 255, 255, 0.05);
-      width: 72px;
-      height: 72px;
-      border-radius: 16px;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .ill-text h3 {
-      font-size: 16px;
+    .info-content h3 {
+      font-size: 15px;
       font-weight: 700;
       margin-bottom: 6px;
       color: #fff;
     }
 
-    .ill-text ul {
-      margin-left: 18px;
-      font-size: 14px;
+    .info-content p, .info-content ul {
+      font-size: 13.5px;
       color: #cbd5e1;
       line-height: 1.5;
     }
 
-    /* BIG BUTTONS */
+    .info-content ul {
+      margin-left: 18px;
+      margin-top: 4px;
+    }
+
+    .info-content li {
+      margin-bottom: 4px;
+    }
+
+    .badge-pill {
+      display: inline-block;
+      padding: 1px 7px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-right: 4px;
+    }
+    .badge-pill.red { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    .badge-pill.green { background: rgba(16, 185, 129, 0.2); color: #86efac; }
+    .badge-pill.yellow { background: rgba(245, 158, 11, 0.2); color: #fde047; }
+    .badge-pill.blue { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+
+    /* ACTION BUTTONS */
     .btn-action {
       width: 100%;
       padding: 18px 24px;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
       border-radius: 16px;
       border: none;
@@ -345,10 +435,9 @@
       filter: grayscale(0.5);
     }
 
-    /* SPINNER */
     .spinner {
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
       border: 3px solid rgba(255, 255, 255, 0.3);
       border-radius: 50%;
       border-top-color: #ffffff;
@@ -364,37 +453,77 @@
       display: block;
     }
 
-    /* STATUS BANNER */
-    .status-banner {
+    /* COLLAPSIBLE GUIDE PANEL */
+    details.guide-panel {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    details.guide-panel summary {
+      padding: 16px 20px;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #93c5fd;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s;
+    }
+
+    details.guide-panel summary:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .guide-body {
+      padding: 20px;
+      border-top: 1px solid var(--card-border);
+      background: rgba(10, 15, 29, 0.6);
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+
+    .tool-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 16px;
+    }
+
+    .tool-chip {
+      padding: 5px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      font-size: 12px;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+
+    .guide-step {
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .guide-step:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .guide-step-title {
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
-      border-radius: 14px;
-      margin-bottom: 20px;
-      font-size: 15px;
-      font-weight: 500;
-      background: rgba(59, 130, 246, 0.1);
-      border: 1px solid rgba(59, 130, 246, 0.25);
-      color: #bfdbfe;
-    }
-
-    .status-banner.warning {
-      background: rgba(245, 158, 11, 0.12);
-      border-color: rgba(245, 158, 11, 0.3);
-      color: #fde68a;
-    }
-
-    .status-banner.success {
-      background: rgba(16, 185, 129, 0.12);
-      border-color: rgba(16, 185, 129, 0.3);
-      color: #a7f3d0;
-    }
-
-    .status-banner.error {
-      background: rgba(239, 68, 68, 0.12);
-      border-color: rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
+      gap: 6px;
     }
 
     /* LOGS DRAWER */
@@ -408,7 +537,7 @@
 
     details.logs-panel summary {
       padding: 14px 20px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 600;
       cursor: pointer;
       color: var(--text-muted);
@@ -449,7 +578,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 4px;
+      padding: 8px 10px;
       font-size: 13px;
       color: var(--text-muted);
     }
@@ -457,25 +586,31 @@
     .btn-reset {
       background: transparent;
       border: none;
-      color: #64748b;
+      color: var(--text-muted);
       cursor: pointer;
       font-size: 13px;
-      text-decoration: underline;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
     }
 
     .btn-reset:hover {
-      color: #94a3b8;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
     }
 
-    @media (max-width: 680px) {
+    @media (max-width: 640px) {
       .stepper {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr 1fr;
       }
-      .main-card {
-        padding: 24px 18px;
+      header {
+        flex-direction: column;
+        gap: 14px;
+        align-items: flex-start;
       }
-      .brand-text h1 {
-        font-size: 17px;
+      .status-badges {
+        width: 100%;
+        justify-content: space-between;
       }
     }
   </style>
@@ -488,19 +623,23 @@
     <header>
       <div class="brand">
         <div class="brand-icon">
-          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
         </div>
         <div class="brand-text">
-          <h1>Мастер разблокировки Geely</h1>
-          <p>Автоматическая активация ADB и снятие защиты</p>
+          <h1>Geely ADB Unlock Master</h1>
+          <p>
+            <span>Разблокировка отладки и установка APK</span>
+            <span class="tag-model">EX5 EM-i / Belgee X80</span>
+          </p>
         </div>
       </div>
+
       <div class="status-badges">
-        <div class="badge" id="badge-device">
+        <div class="badge disconnected" id="badge-device">
           <span class="dot"></span>
           <span id="label-device">Поиск ГУ...</span>
         </div>
-        <button class="btn-clean-adb" id="btn-kill-adb" title="Если порт занят или adb завис">Очистить ADB</button>
+        <button class="btn-clean-adb" id="btn-kill-adb" title="Перезапустить процесс ADB при зависании">Очистить ADB</button>
       </div>
     </header>
 
@@ -512,45 +651,70 @@
       </div>
       <div class="step-item" id="step-ind-2">
         <div class="step-num">2</div>
-        <div class="step-label">Сброс ГУ<br>и захват ADB</div>
+        <div class="step-label">Сброс ГУ<br>(Factory Reset)</div>
       </div>
       <div class="step-item" id="step-ind-3">
         <div class="step-num">3</div>
-        <div class="step-label">Снятие перемычки<br>и перезагрузка</div>
+        <div class="step-label">Снятие перемычки<br>и проверка</div>
       </div>
       <div class="step-item" id="step-ind-4">
         <div class="step-num">4</div>
-        <div class="step-label">Снятие защиты<br>и финал</div>
+        <div class="step-label">Снятие защиты<br>Parrot и финал</div>
       </div>
     </div>
 
     <!-- STATUS BANNER -->
     <div class="status-banner" id="status-banner">
-      <span id="banner-text">Подключите ГУ кабелем к компьютеру и следуйте подсказкам.</span>
+      <span id="banner-text">Подключите ноутбук к сервисному USB-порту авто и следуйте шагам мастера.</span>
     </div>
 
     <!-- MAIN INTERACTIVE CARD -->
     <main class="main-card">
       
-      <!-- STEP 1: PREPARATION -->
+      <!-- STEP 1: PREPARATION & JUMPER -->
       <section class="step-content current" id="step-1">
-        <h2 class="step-title">Шаг 1: Установка перемычки</h2>
-        <p class="step-desc">Чтобы временно активировать сервисный режим для первого захвата, установите аппаратную перемычку в диагностический разъем ГУ.</p>
+        <h2 class="step-title">Шаг 1: Подключение и установка перемычки</h2>
+        <p class="step-desc">Для Geely EX5 EM-i и Belgee X80 сервисный режим временно активируется аппаратной перемычкой на плате головного устройства (DHU) при сбросе настроек.</p>
         
-        <div class="illustration-box">
-          <div class="ill-icon">🔌</div>
-          <div class="ill-text">
-            <h3>Что необходимо сделать:</h3>
-            <ul>
-              <li>Поставьте перемычку в ГУ (согласно схеме вашей модели).</li>
-              <li>Подключите головное устройство к ноутбуку/ПК через USB-кабель.</li>
-              <li>Включите зажигание или запустите мультимедиа.</li>
-            </ul>
+        <div class="info-grid">
+          <div class="info-box highlight">
+            <div class="info-icon">🔌</div>
+            <div class="info-content">
+              <h3>1. Кабель USB (папа ➔ папа)</h3>
+              <p>Соедините ноутбук и автомобиль кабелем <b>USB-A ↔ USB-A</b> через <b>штатный сервисный разъем USB-A</b> на нижней панели центрального тоннеля (снятая крышка с USB и прикуривателем).</p>
+              <p style="margin-top: 4px; font-size: 12.5px; color: #fca5a5;">
+                <span class="badge-pill red">Важно</span>Разъем Type-C на корпусе самого блока DHU <b>не предназначен</b> для отладки ADB!
+              </p>
+            </div>
+          </div>
+
+          <div class="info-box">
+            <div class="info-icon">📍</div>
+            <div class="info-content">
+              <h3>2. Установка перемычки в блок DHU</h3>
+              <p>Открутите крышку DHU (4 винта Torx T8). У правого края платы возле радиатора найдите <b>НИЖНЮЮ группу позолоченных контактов</b>.</p>
+              <ul>
+                <li>Вставьте перемычку (скрученную витую пару) во <b>2-е по счету контакты сверху</b> нижней колодки (два соседних контакта).</li>
+                <li>Убедитесь, что жилы надежно замкнуты между собой, а провод уложен в ребра радиатора.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="info-box warning">
+            <div class="info-icon">🚗</div>
+            <div class="info-content">
+              <h3>3. Подключение разъемов и запуск автомобиля</h3>
+              <ul>
+                <li>Положите блок DHU на место и подключите все разъемы. <b>Белую колодку питания с красным проводом подключайте ПОСЛЕДНЕЙ!</b></li>
+                <li><b>Обязательно прикрутите винт массы</b> на нижнем креплении DHU (без провода массы отключаются камеры 360, люк и датчики).</li>
+                <li>Включите питание автомобиля (нажмите <b>кнопку START без выжимания педали тормоза</b> или запустите мультимедиа), чтобы экран ГУ включился.</li>
+              </ul>
+            </div>
           </div>
         </div>
 
         <button class="btn-action primary" id="btn-step-1">
-          <span>Перемычка установлена, начать захват ADB</span>
+          <span>Перемычка и кабель на месте, перейти к сбросу ГУ</span>
           <div class="spinner"></div>
         </button>
       </section>
@@ -558,22 +722,33 @@
       <!-- STEP 2: FACTORY RESET & VHAL CATCH -->
       <section class="step-content" id="step-2">
         <h2 class="step-title">Шаг 2: Сброс настроек (Factory Reset)</h2>
-        <p class="step-desc">Скрипт сейчас ожидает перезагрузку ГУ. В момент запуска у нас будет короткое окно (20 сек), чтобы зафиксировать ADB на постоянной основе.</p>
+        <p class="step-desc">Скрипт сейчас непрерывно опрашивает порт и ожидает старт ГУ. При загрузке откроется 20-секундное окно, в котором программа автоматически зафиксирует постоянный ADB.</p>
         
-        <div class="illustration-box">
-          <div class="ill-icon">⚙️</div>
-          <div class="ill-text">
-            <h3>Действие на экране авто:</h3>
-            <ul>
-              <li>На экране магнитолы зайдите в: <b>Настройки ➔ Система ➔ Сброс к заводским настройкам</b>.</li>
-              <li>Подтвердите сброс. Экран погаснет и начнет перезагружаться.</li>
-              <li><b>Ничего не нажимайте на компьютере</b> — программа поймает магнитолу сама!</li>
-            </ul>
+        <div class="info-grid">
+          <div class="info-box highlight">
+            <div class="info-icon">⚙️</div>
+            <div class="info-content">
+              <h3>Действие на центральном экране автомобиля:</h3>
+              <p>Зайдите в меню: <b>Настройки ➔ Система ➔ Сброс к заводским настройкам (Factory Reset)</b> и подтвердите действие.</p>
+              <ul>
+                <li>Экран ГУ погаснет и начнется перезагрузка.</li>
+                <li>Когда на приборной панели появится логотип/анимация (экран ГУ может еще быть черным), на ПК появится устройство <code>ADB Gadget</code>.</li>
+                <li><b>Ничего не нажимайте на компьютере</b> — скрипт сам перехватит окно, получит root и выполнит VHAL-команду фиксации ADB!</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="info-box warning">
+            <div class="info-icon">⚠️</div>
+            <div class="info-content">
+              <h3>Предостережение из опыта первопроходцев:</h3>
+              <p>Перезагрузка двумя кнопками на руле (голосовая + правая OK) <b>НЕ открывает сервисное окно ADB!</b> Нужен строго штатный Factory Reset из настроек системы.</p>
+            </div>
           </div>
         </div>
 
         <button class="btn-action secondary" id="btn-step-2" disabled>
-          <span>Ожидаем сброс магнитолы...</span>
+          <span>Ожидаем сброс ГУ (слушаем порт)...</span>
           <div class="spinner"></div>
         </button>
       </section>
@@ -581,40 +756,46 @@
       <!-- STEP 3: UNPLUG JUMPER & REBOOT -->
       <section class="step-content" id="step-3">
         <h2 class="step-title">Шаг 3: Снимите перемычку</h2>
-        <p class="step-desc">Ура! Порт ADB успешно зафиксирован в системе автомобиля на постоянной основе. Теперь перемычка больше не нужна.</p>
+        <p class="step-desc">Успешно! VHAL-свойство <code>SETTING_FUNC_USB_SWITCH=0</code> установлено. Сервисный порт ADB зафиксирован в системе навсегда. Теперь перемычка больше не нужна.</p>
         
-        <div class="illustration-box">
-          <div class="ill-icon">✂️</div>
-          <div class="ill-text">
-            <h3>Важное действие:</h3>
-            <ul>
-              <li><b>Выньте перемычку</b> из разъема прямо сейчас.</li>
-              <li>USB-кабель оставьте подключенным к компьютеру!</li>
-              <li>Нажмите кнопку ниже, чтобы перезагрузить ГУ и проверить постоянство связи.</li>
-            </ul>
+        <div class="info-grid">
+          <div class="info-box">
+            <div class="info-icon">✂️</div>
+            <div class="info-content">
+              <h3>Порядок действий:</h3>
+              <ul>
+                <li>Выключите питание автомобиля (кнопкой START).</li>
+                <li>Аккуратно <b>извлеките перемычку</b> из контактных площадок платы DHU.</li>
+                <li>Закрутите крышку блока DHU на 4 винта Torx T8.</li>
+                <li>Убедитесь, что все разъемы подключены (питание последним, провод массы прикручен).</li>
+                <li>Включите питание автомобиля кнопкой START (кабель USB остается подключенным к ноутбуку).</li>
+              </ul>
+            </div>
           </div>
         </div>
 
         <button class="btn-action primary" id="btn-step-3">
-          <span>Перемычка вынута, перезагрузить ГУ и продолжить</span>
+          <span>Перемычка вынута, перезагрузить ГУ для проверки</span>
           <div class="spinner"></div>
         </button>
       </section>
 
       <!-- STEP 4: UNLOCK PARROT & INSTALL TOGGLE -->
       <section class="step-content" id="step-4">
-        <h2 class="step-title">Шаг 4: Снятие защиты и установка тумблера</h2>
-        <p class="step-desc">Отключение верификаторов подписи Parrot (чтобы не было ошибки «failed to verify against Parrot certificates») и установка приложения Geely-ADB-Toggle на экран.</p>
+        <h2 class="step-title">Шаг 4: Снятие защиты Parrot и установка тумблера</h2>
+        <p class="step-desc">Отключение верификаторов подписи Parrot (чтобы не было ошибки <code>INSTALL_PARSE_FAILED_NO_CERTIFICATES</code>) и установка системного переключателя ADB.</p>
         
-        <div class="illustration-box">
-          <div class="ill-icon">🛡️</div>
-          <div class="ill-text">
-            <h3>Автоматический процесс:</h3>
-            <ul>
-              <li>Отключение службы проверки AutoInstallVerifier.</li>
-              <li>Снятие ограничений установки в build.prop.</li>
-              <li>Установка приложения переключателя ADB на экран авто.</li>
-            </ul>
+        <div class="info-grid">
+          <div class="info-box success">
+            <div class="info-icon">🛡️</div>
+            <div class="info-content">
+              <h3>Автоматические операции:</h3>
+              <ul>
+                <li>Установка параметра <code>ro.vendor.ecarx.app_verify=false</code> в <code>/product/build.prop</code>.</li>
+                <li>Отключение службы проверки установки приложений <code>com.ecarx.xsfinstallverifier</code>.</li>
+                <li>Установка приложения <b>Geely-ADB-Toggle</b> в гостевой профиль ГУ (<code>--user current</code>).</li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -626,17 +807,22 @@
 
       <!-- STEP 5: FINISH -->
       <section class="step-content" id="step-5">
-        <h2 class="step-title"> Разблокировка успешно завершена!</h2>
-        <p class="step-desc">Магнитола полностью открыта для установки любых приложений. Переключатель ADB установлен в меню авто.</p>
+        <h2 class="step-title">🎉 Разблокировка успешно завершена!</h2>
+        <p class="step-desc">Постоянный ADB активен, ограничения на установку APK сняты, тумблер управления доступен в меню авто. Теперь можно собирать салон автомобиля.</p>
         
-        <div class="illustration-box" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
-          <div class="ill-icon" style="background: rgba(16, 185, 129, 0.2);">🚀</div>
-          <div class="ill-text">
-            <h3>Что дальше:</h3>
-            <ul>
-              <li>Теперь салон автомобиля можно окончательно собрать.</li>
-              <li>Для установки навигатора, музыки и GeelyTune нажмите кнопку ниже — откроется официальный веб-установщик GeelyTune.</li>
-            </ul>
+        <div class="info-grid">
+          <div class="info-box success">
+            <div class="info-icon">🚘</div>
+            <div class="info-content">
+              <h3>Сборка салона в обратном порядке:</h3>
+              <ul>
+                <li>Закрепите блок DHU на направляющие и закрутите 4 винта Torx T25 (не забудьте провод массы!).</li>
+                <li>Провода USB/прикуривателя верните в хомут, вставьте тоннель вперед на место.</li>
+                <li>Закрутите 2 болта на дне ящика подлокотника и крепеж под дефлекторами воздуховодов.</li>
+                <li>Установите верхнюю накладку с шайбой (подключите беспроводную зарядку и климат).</li>
+                <li>Установите бардачок пассажира (2 разъема подсветки) и нижнюю водительскую панель.</li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -648,10 +834,56 @@
 
     </main>
 
+    <!-- COLLAPSIBLE DISASSEMBLY GUIDE -->
+    <details class="guide-panel">
+      <summary>
+        <span>🛠️ Инструкция по разбору салона для доступа к блоку DHU (EX5 EM-i / Belgee X80)</span>
+        <span style="font-size: 11px; opacity: 0.7;">нажмите, чтобы открыть шпаргалку</span>
+      </summary>
+      <div class="guide-body">
+        
+        <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">Необходимый инструмент:</div>
+        <div class="tool-list">
+          <span class="tool-chip">🪛 Отвертки PH2 (длинная и короткая)</span>
+          <span class="tool-chip">🔩 Torx T25 (крепление DHU)</span>
+          <span class="tool-chip">🔩 Torx T8 (крышка DHU)</span>
+          <span class="tool-chip">🧰 Пластиковый съемник клипс</span>
+          <span class="tool-chip">🔧 Тонкие плоскогубцы (для фиксаторов)</span>
+          <span class="tool-chip">🔌 Кабель USB-A ↔ USB-A («папа-папа»)</span>
+        </div>
+
+        <div class="guide-step">
+          <div class="guide-step-title">1. Сторона водителя</div>
+          <p>Снимите боковую накладку торпедо пластиковым съемником (поддевать снизу). Открутите винты нижней панели. <b>Осторожно с ручкой капота:</b> пластиковый фиксатор легко ломается — лучше открутить всю планку целиком (5 винтов). Лампочка подсветки снимается поворотом на 90° против часовой стрелки. Снимите боковую панель у педали газа (под ней скрытый болт тоннеля). Выкрутите крепеж тоннеля (1 болт + 3 винта).</p>
+        </div>
+
+        <div class="guide-step">
+          <div class="guide-step-title">2. Сторона пассажира</div>
+          <p>Снимите боковую накладку торпедо. Открутите 3 винта в торце и снимите длинную декоративную накладку. Выкрутите 7 винтов бардачка (4 вверху, 3 внизу). Потяните бардачок на себя, отключите 2 разъема подсветки. Снимите нижнюю боковую накладку тоннеля и выкрутите крепеж (1 болт + 3 винта).</p>
+        </div>
+
+        <div class="guide-step">
+          <div class="guide-step-title">3. Верхняя накладка центрального тоннеля</div>
+          <p>Опустите рулевую колонку максимально вниз. Отщелкните правый нижний угол накладки над рулем и выкрутите скрытый винт. Выкрутите второй винт с противоположной стороны. Откройте подлокотник, съемником подденьте накладку со стороны ящика и потяните вверх. Отключите разъемы модуля беспроводной зарядки и климата.</p>
+        </div>
+
+        <div class="guide-step">
+          <div class="guide-step-title">4. Центральный тоннель и доступ к DHU</div>
+          <p>Выкрутите крепеж под воздуховодами (2 винта и 2 болта). На дне подлокотника снимите коврик и открутите 2 болта. Освободите клипсы проводов. Сдвиньте тоннель немного назад. Снимите крышку с разъемами USB и прикуривателем (надавить изнутри и поддеть съемником снаружи). Сдвиньте тоннель еще дальше назад.</p>
+        </div>
+
+        <div class="guide-step">
+          <div class="guide-step-title">5. Снятие и подключение DHU</div>
+          <p>Отключите разъем питания (белая колодка с красным проводом снизу — <b>первой!</b>). Отключите остальные разъемы. Выкрутите 4 винта Torx T25 (запомните нижний винт с проводом массы). Снимите блок DHU. Открутите 4 винта Torx T8 крышки и установите перемычку в нижнюю колодку во 2-е пины сверху. Подключите разъемы обратно (питание последним, провод массы прикручен!).</p>
+        </div>
+
+      </div>
+    </details>
+
     <!-- TERMINAL LOGS -->
     <details class="logs-panel" id="logs-panel">
       <summary>
-        <span>Технический журнал (Логи процесса)</span>
+        <span>Технический журнал (Консоль логов)</span>
         <span style="font-size: 11px; color: #64748b;">нажмите для просмотра</span>
       </summary>
       <div class="log-terminal" id="log-terminal">
