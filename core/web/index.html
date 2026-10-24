@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мастер разблокировки Geely ADB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(17, 24, 39, 0.85);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(255, 255, 255, 0.12);
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.25);
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.25);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.7) 0px, transparent 100%);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 40px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* HEADER */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10b981, #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .brand-icon svg {
+      width: 26px;
+      height: 26px;
+      fill: #fff;
+    }
+
+    .brand-text h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #ffffff, #d1d5db);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-text p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .status-badges {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .badge.active .dot {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .badge.disconnected .dot {
+      background: var(--warning);
+      box-shadow: 0 0 8px var(--warning);
+    }
+
+    .btn-clean-adb {
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-clean-adb:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* STEPPER */
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      padding: 6px;
+      background: rgba(17, 24, 39, 0.5);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: transparent;
+      opacity: 0.5;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .step-item.active {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .step-item.completed {
+      opacity: 0.9;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step-item.active .step-num {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    .step-item.completed .step-num {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .step-label {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    /* MAIN CARD */
+    .main-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 36px 32px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .step-content {
+      display: none;
+      animation: fadeIn 0.35s ease-out forwards;
+    }
+
+    .step-content.current {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-title {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .step-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    /* ILLUSTRATION BOX */
+    .illustration-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .ill-icon {
+      font-size: 40px;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.05);
+      width: 72px;
+      height: 72px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ill-text h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+
+    .ill-text ul {
+      margin-left: 18px;
+      font-size: 14px;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    /* BIG BUTTONS */
+    .btn-action {
+      width: 100%;
+      padding: 18px 24px;
+      font-size: 18px;
+      font-weight: 700;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-action.primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      box-shadow: 0 8px 25px var(--accent-glow);
+    }
+
+    .btn-action.primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(16, 185, 129, 0.4);
+      filter: brightness(1.08);
+    }
+
+    .btn-action.secondary {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #ffffff;
+      box-shadow: 0 8px 25px var(--primary-glow);
+    }
+
+    .btn-action.secondary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
+      filter: brightness(1.08);
+    }
+
+    .btn-action:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+      filter: grayscale(0.5);
+    }
+
+    /* SPINNER */
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #ffffff;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading .spinner {
+      display: block;
+    }
+
+    /* STATUS BANNER */
+    .status-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      font-size: 15px;
+      font-weight: 500;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      color: #bfdbfe;
+    }
+
+    .status-banner.warning {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fde68a;
+    }
+
+    .status-banner.success {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #a7f3d0;
+    }
+
+    .status-banner.error {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    /* LOGS DRAWER */
+    details.logs-panel {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+
+    details.logs-panel summary {
+      padding: 14px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    details.logs-panel summary:hover {
+      color: #fff;
+    }
+
+    .log-terminal {
+      background: #050811;
+      padding: 16px;
+      max-height: 220px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.6;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .log-line {
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-line.success { color: #34d399; }
+    .log-line.warning { color: #fbbf24; }
+    .log-line.error { color: #f87171; }
+    .log-line.cmd { color: #60a5fa; }
+
+    /* FOOTER */
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 4px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .btn-reset {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 13px;
+      text-decoration: underline;
+    }
+
+    .btn-reset:hover {
+      color: #94a3b8;
+    }
+
+    @media (max-width: 680px) {
+      .stepper {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .main-card {
+        padding: 24px 18px;
+      }
+      .brand-text h1 {
+        font-size: 17px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- HEADER -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <div class="brand-text">
+          <h1>Мастер разблокировки Geely</h1>
+          <p>Автоматическая активация ADB и снятие защиты</p>
+        </div>
+      </div>
+      <div class="status-badges">
+        <div class="badge" id="badge-device">
+          <span class="dot"></span>
+          <span id="label-device">Поиск ГУ...</span>
+        </div>
+        <button class="btn-clean-adb" id="btn-kill-adb" title="Если порт занят или adb завис">Очистить ADB</button>
+      </div>
+    </header>
+
+    <!-- STEPPER -->
+    <div class="stepper">
+      <div class="step-item active" id="step-ind-1">
+        <div class="step-num">1</div>
+        <div class="step-label">Подготовка<br>и перемычка</div>
+      </div>
+      <div class="step-item" id="step-ind-2">
+        <div class="step-num">2</div>
+        <div class="step-label">Сброс ГУ<br>и захват ADB</div>
+      </div>
+      <div class="step-item" id="step-ind-3">
+        <div class="step-num">3</div>
+        <div class="step-label">Снятие перемычки<br>и перезагрузка</div>
+      </div>
+      <div class="step-item" id="step-ind-4">
+        <div class="step-num">4</div>
+        <div class="step-label">Снятие защиты<br>и финал</div>
+      </div>
+    </div>
+
+    <!-- STATUS BANNER -->
+    <div class="status-banner" id="status-banner">
+      <span id="banner-text">Подключите ГУ кабелем к компьютеру и следуйте подсказкам.</span>
+    </div>
+
+    <!-- MAIN INTERACTIVE CARD -->
+    <main class="main-card">
+      
+      <!-- STEP 1: PREPARATION -->
+      <section class="step-content current" id="step-1">
+        <h2 class="step-title">Шаг 1: Установка перемычки</h2>
+        <p class="step-desc">Чтобы временно активировать сервисный режим для первого захвата, установите аппаратную перемычку в диагностический разъем ГУ.</p>
+        
+        <div class="illustration-box">
+          <div class="ill-icon">🔌</div>
+          <div class="ill-text">
+            <h3>Что необходимо сделать:</h3>
+            <ul>
+              <li>Поставьте перемычку в ГУ (согласно схеме вашей модели).</li>
+              <li>Подключите головное устройство к ноутбуку/ПК через USB-кабель.</li>
+              <li>Включите зажигание или запустите мультимедиа.</li>
+            </ul>
+          </div>
+        </div>
+
+        <button class="btn-action primary" id="btn-step-1">
+          <span>Перемычка установлена, начать захват ADB</span>
+          <div class="spinner"></div>
+        </button>
+      </section>
+
+      <!-- STEP 2: FACTORY RESET & VHAL CATCH -->
+      <section class="step-content" id="step-2">
+        <h2 class="step-title">Шаг 2: Сброс настроек (Factory Reset)</h2>
+        <p class="step-desc">Скрипт сейчас ожидает перезагрузку ГУ. В момент запуска у нас будет короткое окно (20 сек), чтобы зафиксировать ADB на постоянной основе.</p>
+        
+        <div class="illustration-box">
+          <div class="ill-icon">⚙️</div>
+          <div class="ill-text">
+            <h3>Действие на экране авто:</h3>
+            <ul>
+              <li>На экране магнитолы зайдите в: <b>Настройки ➔ Система ➔ Сброс к заводским настройкам</b>.</li>
+              <li>Подтвердите сброс. Экран погаснет и начнет перезагружаться.</li>
+              <li><b>Ничего не нажимайте на компьютере</b> — программа поймает магнитолу сама!</li>
+            </ul>
+          </div>
+        </div>
+
+        <button class="btn-action secondary" id="btn-step-2" disabled>
+          <span>Ожидаем сброс магнитолы...</span>
+          <div class="spinner"></div>
+        </button>
+      </section>
+
+      <!-- STEP 3: UNPLUG JUMPER & REBOOT -->
+      <section class="step-content" id="step-3">
+        <h2 class="step-title">Шаг 3: Снимите перемычку</h2>
+        <p class="step-desc">Ура! Порт ADB успешно зафиксирован в системе автомобиля на постоянной основе. Теперь перемычка больше не нужна.</p>
+        
+        <div class="illustration-box">
+          <div class="ill-icon">✂️</div>
+          <div class="ill-text">
+            <h3>Важное действие:</h3>
+            <ul>
+              <li><b>Выньте перемычку</b> из разъема прямо сейчас.</li>
+              <li>USB-кабель оставьте подключенным к компьютеру!</li>
+              <li>Нажмите кнопку ниже, чтобы перезагрузить ГУ и проверить постоянство связи.</li>
+            </ul>
+          </div>
+        </div>
+
+        <button class="btn-action primary" id="btn-step-3">
+          <span>Перемычка вынута, перезагрузить ГУ и продолжить</span>
+          <div class="spinner"></div>
+        </button>
+      </section>
+
+      <!-- STEP 4: UNLOCK PARROT & INSTALL TOGGLE -->
+      <section class="step-content" id="step-4">
+        <h2 class="step-title">Шаг 4: Снятие защиты и установка тумблера</h2>
+        <p class="step-desc">Отключение верификаторов подписи Parrot (чтобы не было ошибки «failed to verify against Parrot certificates») и установка приложения Geely-ADB-Toggle на экран.</p>
+        
+        <div class="illustration-box">
+          <div class="ill-icon">🛡️</div>
+          <div class="ill-text">
+            <h3>Автоматический процесс:</h3>
+            <ul>
+              <li>Отключение службы проверки AutoInstallVerifier.</li>
+              <li>Снятие ограничений установки в build.prop.</li>
+              <li>Установка приложения переключателя ADB на экран авто.</li>
+            </ul>
+          </div>
+        </div>
+
+        <button class="btn-action primary" id="btn-step-4">
+          <span>Снять защиту и завершить настройку</span>
+          <div class="spinner"></div>
+        </button>
+      </section>
+
+      <!-- STEP 5: FINISH -->
+      <section class="step-content" id="step-5">
+        <h2 class="step-title"> Разблокировка успешно завершена!</h2>
+        <p class="step-desc">Магнитола полностью открыта для установки любых приложений. Переключатель ADB установлен в меню авто.</p>
+        
+        <div class="illustration-box" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
+          <div class="ill-icon" style="background: rgba(16, 185, 129, 0.2);">🚀</div>
+          <div class="ill-text">
+            <h3>Что дальше:</h3>
+            <ul>
+              <li>Теперь салон автомобиля можно окончательно собрать.</li>
+              <li>Для установки навигатора, музыки и GeelyTune нажмите кнопку ниже — откроется официальный веб-установщик GeelyTune.</li>
+            </ul>
+          </div>
+        </div>
+
+        <button class="btn-action primary" id="btn-open-geelytune">
+          <span>Открыть GeelyTune для установки приложений</span>
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+        </button>
+      </section>
+
+    </main>
+
+    <!-- TERMINAL LOGS -->
+    <details class="logs-panel" id="logs-panel">
+      <summary>
+        <span>Технический журнал (Логи процесса)</span>
+        <span style="font-size: 11px; color: #64748b;">нажмите для просмотра</span>
+      </summary>
+      <div class="log-terminal" id="log-terminal">
+        <div class="log-line">Инициализация веб-интерфейса мастера...</div>
+      </div>
+    </details>
+
+    <!-- FOOTER -->
+    <footer>
+      <span>Geely ADB Unlock Master • v2.1.4.5+</span>
+      <div style="display: flex; gap: 16px;">
+        <button class="btn-reset" id="btn-reset-wizard">Начать сначала</button>
+        <button class="btn-reset" id="btn-shutdown" style="color: #ef4444;">Завершить работу</button>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    let pollInterval = null;
+    let currentStep = 1;
+    let isWorking = false;
+
+    // DOM Elements
+    const badgeDevice = document.getElementById('badge-device');
+    const labelDevice = document.getElementById('label-device');
+    const btnKillAdb = document.getElementById('btn-kill-adb');
+    const bannerText = document.getElementById('banner-text');
+    const statusBanner = document.getElementById('status-banner');
+    const logTerminal = document.getElementById('log-terminal');
+    const btnReset = document.getElementById('btn-reset-wizard');
+
+    // Step Buttons
+    const btnStep1 = document.getElementById('btn-step-1');
+    const btnStep2 = document.getElementById('btn-step-2');
+    const btnStep3 = document.getElementById('btn-step-3');
+    const btnStep4 = document.getElementById('btn-step-4');
+    const btnOpenGeelytune = document.getElementById('btn-open-geelytune');
+
+    // Stepper indicators
+    function updateStepper(step) {
+      currentStep = step;
+      for (let i = 1; i <= 4; i++) {
+        const ind = document.getElementById(`step-ind-${i}`);
+        if (!ind) continue;
+        ind.classList.remove('active', 'completed');
+        if (i < step) {
+          ind.classList.add('completed');
+        } else if (i === step || (step === 5 && i === 4)) {
+          ind.classList.add('active');
+        }
+      }
+
+      // Switch step content
+      for (let i = 1; i <= 5; i++) {
+        const sec = document.getElementById(`step-${i}`);
+        if (sec) {
+          sec.classList.toggle('current', i === step);
+        }
+      }
+    }
+
+    // Append logs
+    function updateLogs(logs) {
+      if (!logs || !logs.length) return;
+      logTerminal.innerHTML = logs.map(l => {
+        return `<div class="log-line ${l.level || 'info'}">${escapeHtml(l.formatted || l.text)}</div>`;
+      }).join('');
+      logTerminal.scrollTop = logTerminal.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // Call API action
+    async function apiAction(action, data = {}) {
+      try {
+        const res = await fetch('/api/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, ...data })
+        });
+        return await res.json();
+      } catch (err) {
+        console.error('API Action Error:', err);
+        return { error: err.message };
+      }
+    }
+
+    // Poll status
+    async function pollStatus() {
+      try {
+        const res = await fetch('/api/status');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Update Device badge
+        if (data.device_state === 'connected') {
+          badgeDevice.className = 'badge active';
+          labelDevice.textContent = `ГУ на связи (${data.device_serial})`;
+        } else if (data.device_state === 'multiple') {
+          badgeDevice.className = 'badge active';
+          labelDevice.textContent = 'Подключено несколько ГУ';
+        } else {
+          badgeDevice.className = 'badge disconnected';
+          labelDevice.textContent = 'Ожидание кабеля...';
+        }
+
+        // Update Status banner
+        bannerText.textContent = data.status_message || 'Готов к работе';
+        statusBanner.className = 'status-banner';
+        if (data.status === 'error') statusBanner.classList.add('error');
+        else if (data.status === 'success') statusBanner.classList.add('success');
+        else if (data.status === 'working') statusBanner.classList.add('warning');
+
+        // Update step if changed from backend
+        if (data.step && data.step !== currentStep) {
+          updateStepper(data.step);
+        }
+
+        // Loading states
+        isWorking = data.status === 'working';
+        if (btnStep1) btnStep1.classList.toggle('loading', isWorking && currentStep === 1);
+        if (btnStep2) btnStep2.classList.toggle('loading', isWorking && currentStep === 2);
+        if (btnStep3) btnStep3.classList.toggle('loading', isWorking && currentStep === 3);
+        if (btnStep4) btnStep4.classList.toggle('loading', isWorking && currentStep === 4);
+
+        if (data.logs) {
+          updateLogs(data.logs);
+        }
+
+      } catch (err) {
+        console.warn('Poll error:', err);
+      }
+    }
+
+    // Event listeners
+    btnKillAdb.addEventListener('click', async () => {
+      btnKillAdb.textContent = 'Перезапуск...';
+      await apiAction('kill_adb');
+      setTimeout(() => { btnKillAdb.textContent = 'Очистить ADB'; }, 1000);
+    });
+
+    btnReset.addEventListener('click', async () => {
+      if (confirm('Сбросить мастер к первому шагу?')) {
+        await apiAction('reset_wizard');
+        updateStepper(1);
+      }
+    });
+
+    const btnShutdown = document.getElementById('btn-shutdown');
+    if (btnShutdown) {
+      btnShutdown.addEventListener('click', async () => {
+        if (confirm('Завершить работу мастера разблокировки?')) {
+          await apiAction('shutdown');
+          clearInterval(pollInterval);
+          document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;color:#9ca3af;font-family:sans-serif;font-size:18px;">Мастер разблокировки остановлен. Вы можете закрыть эту вкладку.</div>';
+        }
+      });
+    }
+
+    btnStep1.addEventListener('click', async () => {
+      updateStepper(2);
+      await apiAction('start_step2_listen');
+    });
+
+    btnStep3.addEventListener('click', async () => {
+      btnStep3.disabled = true;
+      btnStep3.classList.add('loading');
+      await apiAction('reboot_and_verify');
+    });
+
+    btnStep4.addEventListener('click', async () => {
+      btnStep4.disabled = true;
+      btnStep4.classList.add('loading');
+      await apiAction('unlock_and_install');
+    });
+
+    btnOpenGeelytune.addEventListener('click', async () => {
+      await apiAction('open_geelytune');
+    });
+
+    // Start polling
+    pollStatus();
+    pollInterval = setInterval(pollStatus, 1000);
+  </script>
+</body>
+</html>

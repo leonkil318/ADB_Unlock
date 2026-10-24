@@ -1,0 +1,19 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Shell scripts must strictly preserve LF
+*.sh text eol=lf
+*.command text eol=lf
+
+# Windows batch files must strictly preserve CRLF
+*.bat text eol=crlf
+
+# Binary files
+*.exe binary
+*.dll binary
+*.apk binary
+core/bin/adb-darwin binary
+core/bin/adb-linux binary
+core/bin/adb.exe binary
+core/bin/AdbWinApi.dll binary
+core/bin/AdbWinUsbApi.dll binary

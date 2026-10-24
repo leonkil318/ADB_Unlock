@@ -1,0 +1,20 @@
+# Runtime logs
+core/debug.log
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller build artifacts
+core/build/
+core/*.spec
+build/
+dist/
+*.spec
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
