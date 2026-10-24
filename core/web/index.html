@@ -119,54 +119,17 @@
       font-size: 11px;
     }
 
-    .status-badges {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .badge {
+    .header-step-pill {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      padding: 6px 14px;
+      gap: 8px;
+      padding: 7px 16px;
       border-radius: 20px;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--card-border);
-    }
-
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    .badge.active .dot {
-      background: var(--accent);
-      box-shadow: 0 0 10px var(--accent);
-    }
-
-    .badge.disconnected .dot {
-      background: var(--warning);
-      box-shadow: 0 0 10px var(--warning);
-    }
-
-    .btn-clean-adb {
-      background: rgba(239, 68, 68, 0.12);
-      color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      padding: 7px 13px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-clean-adb:hover {
-      background: rgba(239, 68, 68, 0.25);
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.28);
+      color: #93c5fd;
     }
 
     /* STEPPER */
@@ -528,23 +491,46 @@
 
     /* LIVE TERMINAL CARD */
     .live-terminal-card {
-      background: rgba(13, 19, 33, 0.92);
+      background: rgba(13, 19, 33, 0.95);
       border: 1px solid var(--card-border);
       border-radius: 18px;
       overflow: hidden;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-      transition: all 0.3s;
+      position: relative;
+      transition: border-color 0.3s;
     }
 
     .live-terminal-card.active-working {
-      border-color: rgba(59, 130, 246, 0.45);
-      box-shadow: 0 0 25px rgba(59, 130, 246, 0.2);
-      animation: pulseBorder 2.5s infinite alternate ease-in-out;
+      border-color: rgba(59, 130, 246, 0.4);
     }
 
-    @keyframes pulseBorder {
-      0% { border-color: rgba(59, 130, 246, 0.3); box-shadow: 0 0 15px rgba(59, 130, 246, 0.15); }
-      100% { border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 0 25px rgba(16, 185, 129, 0.25); }
+    /* Indeterminate Progress Runner */
+    .progress-bar-track {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      position: relative;
+      display: none;
+    }
+
+    .live-terminal-card.active-working .progress-bar-track {
+      display: block;
+    }
+
+    .progress-bar-runner {
+      position: absolute;
+      top: 0;
+      left: -35%;
+      width: 35%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, #3b82f6, #10b981, transparent);
+      animation: runProgress 1.6s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes runProgress {
+      0% { left: -35%; }
+      100% { left: 100%; }
     }
 
     .terminal-header {
@@ -562,35 +548,54 @@
       gap: 12px;
     }
 
-    .live-pulse-badge {
+    .live-activity-badge {
       display: flex;
       align-items: center;
-      gap: 6px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 12px;
-      padding: 3px 8px;
+      padding: 4px 10px;
     }
 
-    .live-pulse-dot {
+    .live-spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(59, 130, 246, 0.2);
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spinRing 1s linear infinite;
+      display: none;
+    }
+
+    .live-terminal-card.active-working .live-spinner {
+      display: block;
+    }
+
+    .live-static-dot {
       width: 7px;
       height: 7px;
       border-radius: 50%;
       background: #10b981;
-      box-shadow: 0 0 8px #10b981;
-      animation: blinkDot 1.4s infinite ease-in-out;
     }
 
-    @keyframes blinkDot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
+    .live-terminal-card.active-working .live-static-dot {
+      display: none;
     }
 
-    .live-pulse-text {
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 0.05em;
-      color: #6ee7b7;
+    @keyframes spinRing {
+      to { transform: rotate(360deg); }
+    }
+
+    .live-status-text {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #94a3b8;
+    }
+
+    .live-terminal-card.active-working .live-status-text {
+      color: #93c5fd;
     }
 
     .terminal-title {
@@ -722,12 +727,8 @@
         </div>
       </div>
 
-      <div class="status-badges">
-        <div class="badge disconnected" id="badge-device">
-          <span class="dot"></span>
-          <span id="label-device">Поиск ГУ...</span>
-        </div>
-        <button class="btn-clean-adb" id="btn-kill-adb" title="Перезапустить процесс ADB при зависании">Очистить ADB</button>
+      <div class="header-step-pill" id="header-step-pill">
+        Шаг 1 из 4 • Подготовка
       </div>
     </header>
 
@@ -971,11 +972,15 @@
 
     <!-- LIVE TERMINAL LOGS -->
     <section class="live-terminal-card" id="logs-card">
+      <div class="progress-bar-track" id="term-progress-track">
+        <div class="progress-bar-runner"></div>
+      </div>
       <div class="terminal-header">
         <div class="terminal-title-group">
-          <div class="live-pulse-badge">
-            <span class="live-pulse-dot"></span>
-            <span class="live-pulse-text">В ЭФИРЕ</span>
+          <div class="live-activity-badge">
+            <span class="live-static-dot"></span>
+            <div class="live-spinner"></div>
+            <span class="live-status-text" id="live-status-text">ГОТОВ</span>
           </div>
           <div class="terminal-title">Журнал операций и пояснения скрипта</div>
         </div>
@@ -1006,13 +1011,12 @@
     let isWorking = false;
 
     // DOM Elements
-    const badgeDevice = document.getElementById('badge-device');
-    const labelDevice = document.getElementById('label-device');
-    const btnKillAdb = document.getElementById('btn-kill-adb');
     const bannerText = document.getElementById('banner-text');
     const statusBanner = document.getElementById('status-banner');
     const logTerminal = document.getElementById('log-terminal');
     const logsCard = document.getElementById('logs-card');
+    const liveStatusText = document.getElementById('live-status-text');
+    const headerStepPill = document.getElementById('header-step-pill');
     const btnClearLogs = document.getElementById('btn-clear-logs');
     const btnReset = document.getElementById('btn-reset-wizard');
 
@@ -1026,6 +1030,17 @@
     // Stepper indicators
     function updateStepper(step) {
       currentStep = step;
+      const stepNames = {
+        1: 'Шаг 1 из 4 • Подготовка',
+        2: 'Шаг 2 из 4 • Сброс настроек ГУ',
+        3: 'Шаг 3 из 4 • Снятие перемычки',
+        4: 'Шаг 4 из 4 • Снятие защиты Parrot',
+        5: '🎉 Разблокировка завершена'
+      };
+      if (headerStepPill) {
+        headerStepPill.textContent = stepNames[step] || `Шаг ${step} из 4`;
+      }
+
       for (let i = 1; i <= 4; i++) {
         const ind = document.getElementById(`step-ind-${i}`);
         if (!ind) continue;
@@ -1094,18 +1109,6 @@
         if (!res.ok) return;
         const data = await res.json();
 
-        // Update Device badge
-        if (data.device_state === 'connected') {
-          badgeDevice.className = 'badge active';
-          labelDevice.textContent = `ГУ на связи (${data.device_serial})`;
-        } else if (data.device_state === 'multiple') {
-          badgeDevice.className = 'badge active';
-          labelDevice.textContent = 'Подключено несколько ГУ';
-        } else {
-          badgeDevice.className = 'badge disconnected';
-          labelDevice.textContent = 'Ожидание кабеля...';
-        }
-
         // Update Status banner
         bannerText.textContent = data.status_message || 'Готов к работе';
         statusBanner.className = 'status-banner';
@@ -1118,11 +1121,15 @@
           updateStepper(data.step);
         }
 
-        // Loading states and active animations
+        // Loading states and active animations (running progress bar, spinner)
         isWorking = data.status === 'working';
         if (logsCard) {
           logsCard.classList.toggle('active-working', isWorking);
         }
+        if (liveStatusText) {
+          liveStatusText.textContent = isWorking ? 'В ПРОЦЕССЕ' : (data.device_state === 'connected' ? 'ГУ ПОДКЛЮЧЕНО' : 'ГОТОВ');
+        }
+
         if (btnStep1) btnStep1.classList.toggle('loading', isWorking && currentStep === 1);
         if (btnStep2) btnStep2.classList.toggle('loading', isWorking && currentStep === 2);
         if (btnStep3) btnStep3.classList.toggle('loading', isWorking && currentStep === 3);
@@ -1136,13 +1143,6 @@
         console.warn('Poll error:', err);
       }
     }
-
-    // Event listeners
-    btnKillAdb.addEventListener('click', async () => {
-      btnKillAdb.textContent = 'Перезапуск...';
-      await apiAction('kill_adb');
-      setTimeout(() => { btnKillAdb.textContent = 'Очистить ADB'; }, 1000);
-    });
 
     btnReset.addEventListener('click', async () => {
       if (confirm('Сбросить мастер к первому шагу?')) {
