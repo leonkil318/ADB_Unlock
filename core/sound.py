@@ -3,7 +3,7 @@ Geely ADB Unlock Master - Retro Audio Engine
 Plays background chiptune track (core/zelda.mp3)
 across Windows, macOS, and Linux with Zero External Dependencies.
 - Windows: Native Windows .NET WPF Media Engine (System.Windows.Media.MediaPlayer)
-  via silent background worker - eliminates all MCI bugs and speaker scratching.
+  with buffer-readiness detection and hardware loop.
 - macOS: Native afplay (/usr/bin/afplay)
 - Linux: Native audio tools (mpg123, mpv, ffplay, cvlc, play)
 Completely removes low-level hardware piezo beeps (no speaker pops or scratches).
@@ -66,7 +66,7 @@ def set_sound_enabled(enabled):
         stop_bgm()
 
 
-def play_bgm(loop=True, volume=0.55):
+def play_bgm(loop=True, volume=0.8):
     """
     Plays the Zelda background soundtrack in a hidden background process
     across Windows, macOS, and Linux without third-party pip libraries.
@@ -101,7 +101,15 @@ Add-Type -AssemblyName presentationCore
 $player = New-Object System.Windows.Media.MediaPlayer
 $player.Open([System.Uri]::new('{escaped_path}'))
 $player.Volume = {vol_str}
+
+# Wait until media buffer is parsed and ready
+for ($i = 0; $i -lt 40; $i++) {{
+    if ($player.NaturalDuration.HasTimeSpan) {{ break }}
+    Start-Sleep -Milliseconds 50
+}}
+
 {loop_logic}
+
 while ($true) {{
     Start-Sleep -Milliseconds 500
 }}
@@ -173,7 +181,7 @@ def toggle_sound():
 
 def play_sound(event):
     """
-    Audio event router. Hardware beeping is disabled to prevent
-    speaker pops, clicks, or scratch sounds on sound cards.
+    Audio event router. Hardware speaker beeping is permanently disabled
+    to prevent speaker pops, clicks, or scratch sounds on sound cards.
     """
     pass
