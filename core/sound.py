@@ -1,33 +1,47 @@
 """
-Geely ADB Unlock Master - Retro Audio Synthesizer
-Zero-dependency sound module using native platform facilities.
-- Windows: winsound.Beep (micro-tones, retro arpeggios, sonar pulses)
-- macOS / Linux: native system bell fallbacks
-All audio plays in non-blocking daemon threads without freezing UI or ADB operations.
+Geely ADB Unlock Master - Retro Audio Synthesizer (Pure Tone Zero-Dependency Engine)
+Synthesizes retro chiptune melodies and sound effects directly via hardware timers.
+- Windows: winsound.Beep (hardware micro-tones, 8-bit arpeggios, sonar radar)
+- macOS / Linux: native system bell / terminal audio fallback
+Total size: 0 bytes of external audio files. 100% pure Python standard library.
 """
 
 import sys
-import os
 import time
 import threading
-import subprocess
 
 SOUND_ENABLED = True
 _lock = threading.Lock()
-_bgm_playing = False
+_bgm_thread = None
+_bgm_stop_event = threading.Event()
 
+# Legendary Zelda 8-bit Soundtracks & Chimes (Frequency in Hz, Duration in ms)
+ZELDA_SECRET_CHIME = [
+    (392, 120),  # G4
+    (370, 120),  # F#4
+    (311, 120),  # D#4
+    (220, 120),  # A3
+    (207, 120),  # G#3
+    (330, 120),  # E4
+    (415, 120),  # G#4
+    (523, 300),  # C5 - The legendary puzzle solved / secret unlock chime!
+]
 
-def _get_mp3_path():
-    """Finds bundled or local zelda.mp3 file."""
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        p = os.path.join(sys._MEIPASS, 'zelda.mp3')
-        if os.path.exists(p):
-            return p
-    base = os.path.dirname(os.path.abspath(__file__))
-    p = os.path.join(base, 'zelda.mp3')
-    if os.path.exists(p):
-        return p
-    return None
+ZELDA_ITEM_FANFARE = [
+    (466, 90),   # A#4
+    (494, 90),   # B4
+    (523, 90),   # C5
+    (554, 280),  # C#5 - Item received fanfare
+]
+
+ZELDA_LOST_WOODS = [
+    # Saria's Song (Lost Woods) - classic retro 8-bit chiptune
+    (349, 130), (440, 130), (494, 260),
+    (349, 130), (440, 130), (494, 260),
+    (349, 130), (440, 130), (494, 130), (659, 130), (587, 260),
+    (494, 130), (523, 130), (494, 130), (392, 130), (330, 350),
+    (294, 130), (330, 130), (392, 130), (440, 350),
+]
 
 
 def is_sound_enabled():
@@ -36,8 +50,7 @@ def is_sound_enabled():
 
 
 def is_bgm_playing():
-    global _bgm_playing
-    return _bgm_playing
+    return _bgm_thread is not None and _bgm_thread.is_alive() and not _bgm_stop_event.is_set()
 
 
 def set_sound_enabled(enabled):
@@ -48,52 +61,54 @@ def set_sound_enabled(enabled):
         stop_bgm()
 
 
+def _play_windows_tones(tones):
+    """Plays a sequence of (frequency_hz, duration_ms) tuples via winsound."""
+    try:
+        import winsound
+        for freq, dur in tones:
+            if _bgm_stop_event.is_set() and tones is ZELDA_LOST_WOODS:
+                break
+            winsound.Beep(freq, dur)
+    except Exception:
+        pass
+
+
+def _play_fallback_bell():
+    """Terminal bell fallback for non-Windows platforms."""
+    try:
+        sys.stdout.write('\a')
+        sys.stdout.flush()
+    except Exception:
+        pass
+
+
 def play_bgm(loop=True):
-    """Plays the retro Zelda MP3 track asynchronously in the background with zero external libraries."""
-    global _bgm_playing
-    if not SOUND_ENABLED or _bgm_playing:
+    """Plays the retro Zelda chiptune melody in a background daemon thread."""
+    global _bgm_thread
+    if not SOUND_ENABLED or is_bgm_playing():
         return
 
-    mp3_path = _get_mp3_path()
-    if not mp3_path:
-        return
+    _bgm_stop_event.clear()
 
     def _worker():
-        global _bgm_playing
         if sys.platform == "win32":
-            try:
-                import ctypes
-                mci = ctypes.windll.winmm.mciSendStringW
-                mci('close geely_bgm', None, 0, None)
-                ret = mci(f'open "{mp3_path}" type mpegvideo alias geely_bgm', None, 0, None)
-                if ret == 0:
-                    cmd = 'play geely_bgm repeat' if loop else 'play geely_bgm'
-                    mci(cmd, None, 0, None)
-                    _bgm_playing = True
-            except Exception:
-                pass
-        elif sys.platform == "darwin":
-            try:
-                subprocess.Popen(["afplay", mp3_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                _bgm_playing = True
-            except Exception:
-                pass
+            while not _bgm_stop_event.is_set() and SOUND_ENABLED:
+                _play_windows_tones(ZELDA_LOST_WOODS)
+                if not loop:
+                    break
+                # Pause between loops
+                for _ in range(15):
+                    if _bgm_stop_event.is_set():
+                        break
+                    time.sleep(0.1)
 
-    threading.Thread(target=_worker, daemon=True).start()
+    _bgm_thread = threading.Thread(target=_worker, daemon=True)
+    _bgm_thread.start()
 
 
 def stop_bgm():
-    """Stops background MP3 playback."""
-    global _bgm_playing
-    _bgm_playing = False
-    if sys.platform == "win32":
-        try:
-            import ctypes
-            mci = ctypes.windll.winmm.mciSendStringW
-            mci('stop geely_bgm', None, 0, None)
-            mci('close geely_bgm', None, 0, None)
-        except Exception:
-            pass
+    """Stops background chiptune melody."""
+    _bgm_stop_event.set()
 
 
 def toggle_sound():
@@ -109,33 +124,14 @@ def toggle_sound():
     return state
 
 
-def _play_windows_tones(tones):
-    """Plays a sequence of (frequency_hz, duration_ms) tuples via winsound."""
-    try:
-        import winsound
-        for freq, dur in tones:
-            winsound.Beep(freq, dur)
-    except Exception:
-        pass
-
-
-def _play_fallback_bell():
-    """Terminal bell fallback for non-Windows platforms."""
-    try:
-        sys.stdout.write('\a')
-        sys.stdout.flush()
-    except Exception:
-        pass
-
-
 def play_sound(event):
     """
     Plays a retro sound effect asynchronously in a background thread.
     Supported events:
       - 'radar':   Subtle 18ms sonar ping during scanning / background wait
       - 'step':    Short confirmation chirp on progress advance
-      - 'catch':   Sci-fi dual-tone on VHAL connection catch
-      - 'success': 8-bit retro victory fanfare (C5-E5-G5-C6)
+      - 'catch':   Zelda item fanfare on VHAL connection catch
+      - 'success': Legendary Zelda Secret Unlock chime
       - 'error':   Low dual warning buzz
     """
     if not SOUND_ENABLED:
@@ -148,9 +144,9 @@ def play_sound(event):
             elif event == "step":
                 _play_windows_tones([(987, 35)])
             elif event == "catch":
-                _play_windows_tones([(1318, 60), (1760, 90)])
+                _play_windows_tones(ZELDA_ITEM_FANFARE)
             elif event == "success":
-                _play_windows_tones([(523, 65), (659, 65), (784, 65), (1046, 120)])
+                _play_windows_tones(ZELDA_SECRET_CHIME)
             elif event == "error":
                 _play_windows_tones([(220, 140), (150, 190)])
         else:
