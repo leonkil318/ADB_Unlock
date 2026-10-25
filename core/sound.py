@@ -1,12 +1,12 @@
 """
 Geely ADB Unlock Master - Retro Audio Engine
-Plays native audio effects and background chiptune track (core/zelda.mp3)
-across Windows, macOS, and Linux with Zero External Dependencies (no pip packages needed).
-- Windows: Native WinMM MCI subsystem (winmm.dll) with persistent worker thread
+Plays background chiptune track (core/zelda.mp3)
+across Windows, macOS, and Linux with Zero External Dependencies.
+- Windows: Native Windows .NET WPF Media Engine (System.Windows.Media.MediaPlayer)
+  via silent background worker - eliminates all MCI bugs and speaker scratching.
 - macOS: Native afplay (/usr/bin/afplay)
 - Linux: Native audio tools (mpg123, mpv, ffplay, cvlc, play)
-Volume is balanced and comfortable (50%).
-Progress sounds are soft, warm, low-frequency clicks (440Hz / 12ms) - never piercing or shrill.
+Completely removes low-level hardware piezo beeps (no speaker pops or scratches).
 """
 
 import sys
@@ -18,23 +18,7 @@ import subprocess
 
 SOUND_ENABLED = True
 _lock = threading.Lock()
-_bgm_stop_event = threading.Event()
-_bgm_thread = None
 _bgm_process = None
-
-
-def _get_short_path(path):
-    """Converts a Windows path to an 8.3 short path for 100% reliable MCI command parsing."""
-    if sys.platform == "win32":
-        try:
-            import ctypes
-            buf = ctypes.create_unicode_buffer(512)
-            ctypes.windll.kernel32.GetShortPathNameW(path, buf, 512)
-            if buf.value:
-                return buf.value
-        except Exception:
-            pass
-    return path
 
 
 def _get_mp3_path():
@@ -70,7 +54,8 @@ def is_sound_enabled():
 
 
 def is_bgm_playing():
-    return _bgm_thread is not None and _bgm_thread.is_alive() and not _bgm_stop_event.is_set()
+    global _bgm_process
+    return _bgm_process is not None and _bgm_process.poll() is None
 
 
 def set_sound_enabled(enabled):
@@ -81,12 +66,12 @@ def set_sound_enabled(enabled):
         stop_bgm()
 
 
-def play_bgm(loop=True, volume=500):
+def play_bgm(loop=True, volume=0.55):
     """
-    Plays the Zelda background soundtrack in a persistent daemon thread
-    across Windows, macOS, and Linux without external libraries.
+    Plays the Zelda background soundtrack in a hidden background process
+    across Windows, macOS, and Linux without third-party pip libraries.
     """
-    global _bgm_thread, _bgm_stop_event
+    global _bgm_process
     if not SOUND_ENABLED or is_bgm_playing():
         return
 
@@ -94,50 +79,56 @@ def play_bgm(loop=True, volume=500):
     if not mp3_path or not os.path.exists(mp3_path):
         return
 
-    _bgm_stop_event.clear()
+    stop_bgm()
 
     def _worker():
         global _bgm_process
         if sys.platform == "win32":
             try:
-                import ctypes
-                mci = ctypes.windll.winmm.mciSendStringW
-                short_p = _get_short_path(mp3_path)
-                mci('close geely_bgm', None, 0, None)
-                ret = mci(f'open "{short_p}" type mpegvideo alias geely_bgm', None, 0, None)
-                if ret == 0:
-                    mci(f'setaudio geely_bgm volume to {volume}', None, 0, None)
-                    cmd = 'play geely_bgm repeat' if loop else 'play geely_bgm'
-                    mci(cmd, None, 0, None)
+                escaped_path = mp3_path.replace("'", "''")
+                vol_str = str(volume)
+                loop_logic = """
+$player.Play()
+Register-ObjectEvent -InputObject $player -EventName MediaEnded -Action {
+    $player.Position = [System.TimeSpan]::Zero
+    $player.Play()
+} | Out-Null
+""" if loop else "$player.Play()"
 
-                    # CRITICAL: Keep this thread alive so Windows MCI maintains the playback session!
-                    while not _bgm_stop_event.is_set():
-                        time.sleep(0.2)
-
-                    mci('stop geely_bgm', None, 0, None)
-                    mci('close geely_bgm', None, 0, None)
+                ps_command = f"""
+$ErrorActionPreference = 'SilentlyContinue'
+Add-Type -AssemblyName presentationCore
+$player = New-Object System.Windows.Media.MediaPlayer
+$player.Open([System.Uri]::new('{escaped_path}'))
+$player.Volume = {vol_str}
+{loop_logic}
+while ($true) {{
+    Start-Sleep -Milliseconds 500
+}}
+"""
+                creationflags = 0x08000000  # CREATE_NO_WINDOW
+                _bgm_process = subprocess.Popen(
+                    ["powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", ps_command],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    creationflags=creationflags
+                )
             except Exception:
                 pass
         elif sys.platform == "darwin":
             try:
-                vol_float = max(0.05, min(1.0, volume / 1000.0))
-                cmd = ["afplay", "-v", str(vol_float), mp3_path]
+                cmd = ["afplay", "-v", str(volume), mp3_path]
                 _bgm_process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                while not _bgm_stop_event.is_set() and _bgm_process.poll() is None:
-                    time.sleep(0.2)
-                if _bgm_process and _bgm_process.poll() is None:
-                    _bgm_process.terminate()
             except Exception:
                 pass
         else:
-            # Linux native audio player tools
             for player in ["mpg123", "mpv", "ffplay", "cvlc", "play"]:
                 if shutil.which(player):
                     try:
                         if player == "mpg123":
-                            cmd = ["mpg123", "-q", "--scale", str(int(volume * 32.768)), mp3_path]
+                            cmd = ["mpg123", "-q", mp3_path]
                         elif player == "mpv":
-                            cmd = ["mpv", "--no-video", f"--volume={int(volume / 10)}", mp3_path]
+                            cmd = ["mpv", "--no-video", f"--volume={int(volume * 100)}", mp3_path]
                         elif player == "ffplay":
                             cmd = ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", mp3_path]
                         elif player == "cvlc":
@@ -145,36 +136,20 @@ def play_bgm(loop=True, volume=500):
                         else:
                             cmd = ["play", "-q", mp3_path]
                         _bgm_process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        while not _bgm_stop_event.is_set() and _bgm_process.poll() is None:
-                            time.sleep(0.2)
-                        if _bgm_process and _bgm_process.poll() is None:
-                            _bgm_process.terminate()
                         break
                     except Exception:
                         pass
 
-    _bgm_thread = threading.Thread(target=_worker, daemon=True)
-    _bgm_thread.start()
+    threading.Thread(target=_worker, daemon=True).start()
 
 
 def stop_bgm():
     """Immediately stops background audio on any OS."""
-    global _bgm_stop_event, _bgm_process
-    _bgm_stop_event.set()
-
-    if sys.platform == "win32":
-        try:
-            import ctypes
-            mci = ctypes.windll.winmm.mciSendStringW
-            mci('stop geely_bgm', None, 0, None)
-            mci('close geely_bgm', None, 0, None)
-        except Exception:
-            pass
-
+    global _bgm_process
     if _bgm_process is not None:
         try:
             _bgm_process.terminate()
-            _bgm_process.wait(timeout=0.3)
+            _bgm_process.wait(timeout=0.4)
         except Exception:
             try:
                 _bgm_process.kill()
@@ -190,84 +165,15 @@ def toggle_sound():
         SOUND_ENABLED = not SOUND_ENABLED
         state = SOUND_ENABLED
     if state:
-        play_sound("step")
         play_bgm(loop=True)
     else:
         stop_bgm()
     return state
 
 
-def _play_soft_click():
-    """Subtle, warm, non-ear-piercing micro-click for UI steps (520Hz, 12ms)."""
-    if sys.platform == "win32":
-        try:
-            import winsound
-            winsound.Beep(520, 12)
-        except Exception:
-            pass
-
-
-def _play_progress_pulse():
-    """Comfortable, warm, low-frequency pulse for spinner (440Hz musical A4, only 12ms)."""
-    if sys.platform == "win32":
-        try:
-            import winsound
-            winsound.Beep(440, 12)
-        except Exception:
-            pass
-
-
-def _play_fallback_bell():
-    try:
-        sys.stdout.write('\a')
-        sys.stdout.flush()
-    except Exception:
-        pass
-
-
 def play_sound(event):
     """
-    Plays subtle UI feedback sounds in the background.
-    Uses warm, low frequencies (440-520Hz) - never piercing or shrill.
+    Audio event router. Hardware beeping is disabled to prevent
+    speaker pops, clicks, or scratch sounds on sound cards.
     """
-    if not SOUND_ENABLED:
-        return
-
-    def _worker():
-        if event == "radar":
-            _play_progress_pulse()
-        elif event == "step":
-            _play_soft_click()
-        elif event == "catch":
-            if sys.platform == "win32":
-                try:
-                    import winsound
-                    winsound.Beep(523, 40)
-                    winsound.Beep(659, 60)
-                except Exception:
-                    pass
-            else:
-                _play_fallback_bell()
-        elif event == "success":
-            if sys.platform == "win32":
-                try:
-                    import winsound
-                    winsound.Beep(523, 50)
-                    winsound.Beep(659, 50)
-                    winsound.Beep(784, 80)
-                except Exception:
-                    pass
-            else:
-                _play_fallback_bell()
-        elif event == "error":
-            if sys.platform == "win32":
-                try:
-                    import winsound
-                    winsound.Beep(261, 80)
-                    winsound.Beep(220, 120)
-                except Exception:
-                    pass
-            else:
-                _play_fallback_bell()
-
-    threading.Thread(target=_worker, daemon=True).start()
+    pass

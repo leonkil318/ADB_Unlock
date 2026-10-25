@@ -401,10 +401,6 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
                 sys.stdout.write(f"\r{spinner_line}{padding}\r")
                 sys.stdout.flush()
 
-            # Periodic comfortable progress pulse every ~3 seconds (30 ticks * 0.1s)
-            if idx > 0 and idx % 30 == 0:
-                play_sound("radar")
-
             idx += 1
             time.sleep(0.1)
 
