@@ -114,7 +114,7 @@ def render_diagnostic_card(state):
     t = state.last_test or {}
     connected = t.get("connected", state.device_state == "connected")
     serial = t.get("serial") or state.device_serial or "Не обнаружено"
-    model = t.get("model") or "Geely Head Unit"
+    model = t.get("model") or ("Штатное ГУ Geely" if connected else "-")
     firmware = t.get("firmware") or ("2.1.4.5+" if connected else "-")
 
     if connected:
@@ -154,7 +154,7 @@ def render_diagnostic_card(state):
         pad2 = " " * max(0, col2_w - visible_len(l1_c2))
         print(f"{C_CYAN}│{C_RESET} {l1_c1}{pad1}{l1_c2}{pad2} {C_CYAN}│{C_RESET}")
 
-        l2_c1 = f"Автомобиль:    {C_WHITE}{model}{C_RESET}"
+        l2_c1 = f"Модель ГУ:     {C_WHITE}{model}{C_RESET}"
         l2_c2 = f"Прошивка:    {C_CYAN}{firmware}{C_RESET}"
         pad1 = " " * max(0, col1_w - visible_len(l2_c1))
         pad2 = " " * max(0, col2_w - visible_len(l2_c2))
@@ -173,7 +173,7 @@ def render_diagnostic_card(state):
 
         print_single(f"Связь ADB:     {adb_badge}")
         print_single(f"Серийник:      {C_WHITE}{serial}{C_RESET}")
-        print_single(f"Автомобиль:    {C_WHITE}{model}{C_RESET}")
+        print_single(f"Модель ГУ:     {C_WHITE}{model}{C_RESET}")
         print_single(f"Прошивка:      {C_CYAN}{firmware}{C_RESET}")
         print_single(f"Защита Parrot: {parrot_badge}")
         print_single(f"Верификатор:   {verifier_badge}")

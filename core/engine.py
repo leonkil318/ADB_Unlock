@@ -388,8 +388,8 @@ def test_adb_connection():
     _, fw_inc, _ = run_adb(["shell", "getprop", "ro.build.version.incremental"], timeout=5)
     _, model, _ = run_adb(["shell", "getprop", "ro.product.model"], timeout=5)
     firmware_info = fw_build.strip() or fw_inc.strip() or "Не определена"
-    model_info = model.strip() or "Geely Head Unit"
-    STATE.log(f"🚘 Модель: {model_info} | Прошивка ГУ: {firmware_info}", "info")
+    model_info = model.strip() or "Штатное ГУ Geely"
+    STATE.log(f"🚘 Модель ГУ: {model_info} | Прошивка: {firmware_info}", "info")
 
     # 4. Check Parrot app_verify
     _, parrot_val, _ = run_adb(["shell", "getprop", "ro.vendor.ecarx.app_verify"], timeout=5)
