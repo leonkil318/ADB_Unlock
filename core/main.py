@@ -42,7 +42,7 @@ from tui import (
     C_GRAY
 )
 
-from sound import toggle_sound
+from sound import toggle_sound, play_bgm, stop_bgm
 
 
 def safe_input(prompt, default=""):
@@ -143,6 +143,9 @@ def main():
     if STATE.device_state == "connected":
         test_adb_connection()
 
+    # Start retro keygen background music
+    play_bgm(loop=True)
+
     while True:
         clear_screen()
         print_banner()
@@ -167,8 +170,9 @@ def main():
         elif choice.lower() in ["6", "s", "ы"]:
             enabled = toggle_sound()
             status_str = "ВКЛЮЧЕНЫ" if enabled else "ВЫКЛЮЧЕНЫ"
-            STATE.log(f"Звуковые ретро-эффекты: {status_str}", "info")
+            STATE.log(f"Звуковые эффекты и музыка: {status_str}", "info")
         elif choice in ["0", "q", "exit", "quit"]:
+            stop_bgm()
             print(f"\n{C_GREEN}Завершение работы. Удачи на дорогах!{C_RESET}")
             time.sleep(0.5)
             break
