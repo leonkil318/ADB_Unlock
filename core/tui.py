@@ -246,7 +246,7 @@ def render_menu(state):
     print_menu_item(f"{C_WHITE}[4]{C_RESET} Открыть веб-установщик GeelyTune (в браузере)")
     print_menu_item(f"{C_WHITE}[5]{C_RESET} Перезапустить службу ADB (Очистить зависшие процессы)")
     sound_badge = f"{C_GREEN}[ ВКЛ ]{C_RESET}" if is_sound_enabled() else f"{C_GRAY}[ ВЫКЛ ]{C_RESET}"
-    print_menu_item(f"{C_WHITE}[6]{C_RESET} Звуковые ретро-эффекты и музыка: {sound_badge}")
+    print_menu_item(f"{C_WHITE}[6]{C_RESET} Звуковые ретро-эффекты и сонар: {sound_badge}")
     print_menu_item(f"{C_GRAY}[0] Выход{C_RESET}")
 
     print(f"{C_CYAN}└{'─' * (W - 2)}┘{C_RESET}")
@@ -400,6 +400,10 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
                 padding = " " * max(0, W - 2 - visible_len(spinner_line))
                 sys.stdout.write(f"\r{spinner_line}{padding}\r")
                 sys.stdout.flush()
+
+            # Soft, musical sonar progress beacon every ~2.5 seconds (25 ticks * 0.1s)
+            if idx > 0 and idx % 25 == 0:
+                play_sound("radar")
 
             idx += 1
             time.sleep(0.1)

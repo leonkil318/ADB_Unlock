@@ -42,7 +42,7 @@ from tui import (
     C_GRAY
 )
 
-from sound import toggle_sound, play_bgm, stop_bgm
+from sound import toggle_sound, play_sound
 
 
 def safe_input(prompt, default=""):
@@ -143,9 +143,6 @@ def main():
     if STATE.device_state == "connected":
         test_adb_connection()
 
-    # Start retro keygen background music
-    play_bgm(loop=True)
-
     while True:
         clear_screen()
         print_banner()
@@ -156,23 +153,28 @@ def main():
         choice = safe_input(f"\n{C_CYAN}{C_BOLD}Выберите пункт меню [0-6, S - Звук] > {C_RESET}", default="0").strip()
 
         if choice == "1":
+            play_sound("step")
             run_quick_unlock()
         elif choice == "2":
+            play_sound("step")
             run_full_wizard()
         elif choice == "3":
+            play_sound("step")
             run_interactive_task(STATE, test_adb_connection, "Диагностика связи и проверка статуса ГУ")
         elif choice == "4":
+            play_sound("step")
             webbrowser.open("https://geelytune.github.io")
             STATE.log("Открыт сайт GeelyTune: https://geelytune.github.io", "success")
         elif choice == "5":
+            play_sound("step")
             run_interactive_task(STATE, kill_adb_processes, "Перезапуск службы ADB")
             test_adb_connection()
         elif choice.lower() in ["6", "s", "ы"]:
             enabled = toggle_sound()
             status_str = "ВКЛЮЧЕНЫ" if enabled else "ВЫКЛЮЧЕНЫ"
-            STATE.log(f"Звуковые эффекты и музыка: {status_str}", "info")
+            STATE.log(f"Звуковые ретро-эффекты: {status_str}", "info")
         elif choice in ["0", "q", "exit", "quit"]:
-            stop_bgm()
+            play_sound("step")
             print(f"\n{C_GREEN}Завершение работы. Удачи на дорогах!{C_RESET}")
             time.sleep(0.5)
             break
