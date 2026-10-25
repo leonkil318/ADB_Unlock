@@ -31,7 +31,6 @@ from tui import (
     render_diagnostic_card,
     render_menu,
     render_recent_logs,
-    show_disassembly_guide,
     run_interactive_task,
     C_RESET,
     C_BOLD,
@@ -52,15 +51,15 @@ def safe_input(prompt, default=""):
 
 
 def run_full_wizard():
-    """Runs the 4-step wizard with jumper for new cars."""
+    """Runs the wizard for initial ADB unlock with factory reset."""
     clear_screen()
     print_banner()
-    print(f"\n{C_CYAN}{C_BOLD}🔌 СЦЕНАРИЙ 1: ПОЛНАЯ РАЗБЛОКИРОВКА С НУЛЯ (С ПЕРЕМЫЧКОЙ){C_RESET}\n")
-    print(f"{C_WHITE}ШАГ 1: ПОДГОТОВКА И ПЕРЕМЫЧКА{C_RESET}")
-    print(" 1. Ноутбук соединен кабелем USB-A ↔ USB-A со штатным портом тоннеля.")
-    print(" 2. Крышка DHU откручена (T8), перемычка установлена во 2-е пины сверху нижней колодки.")
-    print(" 3. Винт массы DHU затянут! Белый разъем питания подключен ПОСЛЕДНИМ.")
-    print(" 4. Нажмите кнопку START (без тормоза), чтобы включился экран ГУ.\n")
+    print(f"\n{C_CYAN}{C_BOLD}🔌 СЦЕНАРИЙ: ПЕРВОНАЧАЛЬНАЯ РАЗБЛОКИРОВКА ADB{C_RESET}\n")
+    print(f"{C_WHITE}ГОТОВНОСТЬ К ПЕРЕХВАТУ:{C_RESET}")
+    print(" 1. Кабель USB-A ↔ USB-A соединяет ноутбук и штатный порт автомобиля.")
+    print(" 2. Перемычка установлена, зажигание включено (экран ГУ активен).")
+    print(" 3. После подтверждения запустится цикл ожидания подключения.")
+    print(" 4. Нажмите «Сброс до заводских настроек» (Factory Reset) в меню ГУ.\n")
     
     choice = safe_input(f"{C_CYAN}Готовы начать перехват сервисного окна? [Enter - Да, 0 - Отмена] > {C_RESET}", default="0").strip()
     if choice == "0":
@@ -75,13 +74,12 @@ def run_full_wizard():
     clear_screen()
     print_banner()
     print(f"\n{C_GREEN}{C_BOLD}✅ VHAL ЗАФИКСИРОВАН (Set property получен)!{C_RESET}\n")
-    print(f"{C_WHITE}ШАГ 3: ИЗВЛЕЧЕНИЕ ПЕРЕМЫЧКИ{C_RESET}")
-    print(" 1. Выключите зажигание авто кнопкой START.")
-    print(f" 2. {C_YELLOW}Аккуратно извлеките перемычку{C_RESET} из платы DHU.")
-    print(" 3. Прикрутите металлическую крышку DHU (4 винта T8).")
-    print(" 4. Включите зажигание авто (кабель USB остается подключенным).\n")
+    print(f"{C_WHITE}ДЕЙСТВИЯ С ПЕРЕМЫЧКОЙ:{C_RESET}")
+    print(" 1. Выключите зажигание автомобиля.")
+    print(f" 2. {C_YELLOW}Снимите перемычку.{C_RESET}")
+    print(" 3. Снова включите зажигание авто (кабель USB остаётся подключенным).\n")
     
-    safe_input(f"{C_CYAN}Перемычка вынута? Нажмите Enter для перезагрузки ГУ и проверки ADB...{C_RESET}")
+    safe_input(f"{C_CYAN}Перемычка снята? Нажмите Enter для перезагрузки ГУ и проверки ADB...{C_RESET}")
     run_interactive_task(STATE, worker_reboot_and_verify, "Шаг 3: Перезагрузка ГУ и проверка постоянного ADB")
     if STATE.status != "success":
         return
@@ -96,9 +94,9 @@ def run_quick_unlock():
     """Runs quick unlock for cars with existing ADB after dealer 2.1.4.5+ update."""
     clear_screen()
     print_banner()
-    print(f"\n{C_CYAN}{C_BOLD}⚡ СЦЕНАРИЙ 2: ЭКСПРЕСС-СНЯТИЕ ЗАЩИТЫ (ПОСЛЕ ОБНОВЛЕНИЯ ОД 2.1.4.5+){C_RESET}\n")
-    print(f"{C_GREEN}ВАЖНО: Разборка салона и перемычка НЕ ТРЕБУЮТСЯ!{C_RESET}")
-    print("Если вы ранее открывали ADB, он сохранен в шине автомобиля.")
+    print(f"\n{C_CYAN}{C_BOLD}⚡ СЦЕНАРИЙ: ЭКСПРЕСС-СНЯТИЕ ЗАЩИТЫ (ОД 2.1.4.5+){C_RESET}\n")
+    print(f"{C_GREEN}Перемычка НЕ требуется!{C_RESET}")
+    print("Используется, если постоянный ADB в ГУ уже был активирован ранее.")
     print("Скрипт отключит блокировку Parrot в build.prop, выключит AutoInstallVerifier")
     print("и установит переключатель Geely-ADB-Toggle на экран мультимедиа.\n")
 
@@ -149,7 +147,7 @@ def main():
         render_menu(STATE)
         render_recent_logs(STATE, count=4)
 
-        choice = safe_input(f"\n{C_CYAN}{C_BOLD}Выберите пункт меню [0-6] > {C_RESET}", default="0").strip()
+        choice = safe_input(f"\n{C_CYAN}{C_BOLD}Выберите пункт меню [0-5] > {C_RESET}", default="0").strip()
 
         if choice == "1":
             run_quick_unlock()
@@ -158,11 +156,9 @@ def main():
         elif choice == "3":
             run_interactive_task(STATE, test_adb_connection, "Диагностика связи и проверка статуса ГУ")
         elif choice == "4":
-            show_disassembly_guide()
-        elif choice == "5":
             webbrowser.open("https://geelytune.github.io")
             STATE.log("Открыт сайт GeelyTune: https://geelytune.github.io", "success")
-        elif choice == "6":
+        elif choice == "5":
             run_interactive_task(STATE, kill_adb_processes, "Перезапуск службы ADB")
             test_adb_connection()
         elif choice in ["0", "q", "exit", "quit"]:
@@ -171,6 +167,7 @@ def main():
             break
         else:
             time.sleep(0.2)
+
 
 
 if __name__ == "__main__":

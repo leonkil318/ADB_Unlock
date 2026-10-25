@@ -199,15 +199,14 @@ def render_menu(state):
         print(f"{C_CYAN}│{C_RESET} {p} {C_CYAN}│{C_RESET}")
 
     if connected and needs_unlock:
-        print_menu_item(f"{C_GREEN}{C_BOLD}[1] ⚡ Экспресс-снятие защиты (ОД 2.1.4.5+, БЕЗ разборки салона!){C_RESET}")
+        print_menu_item(f"{C_GREEN}{C_BOLD}[1] ⚡ Экспресс-снятие защиты (ОД 2.1.4.5+, перемычка НЕ требуется){C_RESET}")
     else:
-        print_menu_item(f"{C_WHITE}[1]{C_RESET} ⚡ Экспресс-снятие защиты (После обновления ОД 2.1.4.5+, без перемычки)")
+        print_menu_item(f"{C_WHITE}[1]{C_RESET} ⚡ Экспресс-снятие защиты (После обновления ОД 2.1.4.5+, если ADB уже был)")
 
-    print_menu_item(f"{C_WHITE}[2]{C_RESET} 🔌 Полная разблокировка с нуля (С установкой перемычки и сбросом ГУ)")
-    print_menu_item(f"{C_WHITE}[3]{C_RESET} 🔍 Проверить статус ADB (Диагностика связи и состояния блокировок)")
-    print_menu_item(f"{C_WHITE}[4]{C_RESET} 🛠️ Шпаргалка по разборке салона (EX5 EM-i / Belgee X80)")
-    print_menu_item(f"{C_WHITE}[5]{C_RESET} 🚀 Открыть веб-установщик GeelyTune")
-    print_menu_item(f"{C_WHITE}[6]{C_RESET} 🔄 Перезапустить службу ADB (Очистить зависшие процессы)")
+    print_menu_item(f"{C_WHITE}[2]{C_RESET} 🔌 Первоначальная разблокировка (Фиксация ADB через Factory Reset)")
+    print_menu_item(f"{C_WHITE}[3]{C_RESET} 🔍 Проверить статус ГУ (Диагностика связи и состояния блокировок)")
+    print_menu_item(f"{C_WHITE}[4]{C_RESET} 🚀 Открыть веб-установщик GeelyTune (в браузере)")
+    print_menu_item(f"{C_WHITE}[5]{C_RESET} 🔄 Перезапустить службу ADB (Очистить зависшие процессы)")
     print_menu_item(f"{C_GRAY}[0] ❌ Выход{C_RESET}")
 
     print(f"{C_CYAN}└{'─' * (W - 2)}┘{C_RESET}")
@@ -248,59 +247,6 @@ def render_recent_logs(state, count=5):
                 print(f"{C_CYAN}│{C_RESET} {p} {C_CYAN}│{C_RESET}")
 
     print(f"{C_CYAN}└{'─' * (W - 2)}┘{C_RESET}")
-
-
-def show_disassembly_guide():
-    """Displays salon disassembly cheat sheet with responsive paragraph wrapping."""
-    clear_screen()
-    print_banner()
-    W = get_terminal_width()
-
-    print(f"\n{C_YELLOW}{C_BOLD}🛠️ ШПАРГАЛКА ПО РАЗБОРКЕ САЛОНА (Geely EX5 EM-i / Belgee X80){C_RESET}\n")
-
-    tool_text = "Инструмент: Отвертки PH2 (короткая и длинная), Torx T25 (DHU), Torx T8 (крышка DHU), пластиковый съёмник, тонкие плоскогубцы, кабель USB-A ↔ USB-A."
-    for l in textwrap.wrap(tool_text, width=W):
-        print(f"{C_CYAN}{l}{C_RESET}")
-    print()
-
-    sections = [
-        (
-            f"{C_WHITE}{C_BOLD}1. Сторона водителя:{C_RESET}",
-            "Снять боковую накладку торпедо и нижнюю панель.\n"
-            f"{C_YELLOW}Ручка капота:{C_RESET} не отщёлкивать пластик, а открутить планку целиком (5 винтов)!\n"
-            "Лампочка в ногах — поворот на 90° против часовой. Снять накладку у педали газа."
-        ),
-        (
-            f"{C_WHITE}{C_BOLD}2. Сторона пассажира:{C_RESET}",
-            "Снять боковую накладку и планку (3 винта в торце).\n"
-            "Выкрутить 7 винтов бардачка (4 вверху, 3 внизу), снять бардачок (2 разъёма подсветки).\n"
-            "Открутить крепеж тоннеля (1 болт + 3 винта)."
-        ),
-        (
-            f"{C_WHITE}{C_BOLD}3. Верхняя панель с шайбой:{C_RESET}",
-            "Опустить руль вниз, открутить 2 скрытых винта. Снять накладку с кнопками и климатом."
-        ),
-        (
-            f"{C_WHITE}{C_BOLD}4. Сдвиг тоннеля и блок DHU:{C_RESET}",
-            "Открутить крепеж под дефлекторами (2 винта, 2 болта) и 2 болта на дне подлокотника.\n"
-            "Надавить изнутри на крышку USB тоннеля и поддеть её снаружи. Сдвинуть тоннель назад.\n"
-            f"Разъём питания DHU (с красным проводом) отключать {C_YELLOW}ПЕРВЫМ{C_RESET}, при сборке — {C_GREEN}ПОСЛЕДНИМ{C_RESET}!\n"
-            "Открутить 4 винта Torx T25 (запомнить провод массы!). На плате снять крышку (T8).\n"
-            f"{C_GREEN}Перемычка:{C_RESET} нижняя колодка, 2-е пины сверху (два соседних контакта)."
-        ),
-    ]
-
-    for title, body in sections:
-        print(title)
-        for paragraph in body.splitlines():
-            for line in textwrap.wrap(paragraph, width=W, initial_indent="   • ", subsequent_indent="     "):
-                print(line)
-        print()
-
-    try:
-        input(f"{C_CYAN}Нажмите Enter, чтобы вернуться в главное меню...{C_RESET}")
-    except (KeyboardInterrupt, EOFError):
-        pass
 
 
 def run_interactive_task(state, task_fn, title="Выполнение операции"):

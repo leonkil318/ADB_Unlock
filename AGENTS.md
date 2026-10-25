@@ -30,7 +30,6 @@
   * `adb-linux` — для Linux.
 * `unlock-hu.sh` — скрипт снятия защиты Parrot и AutoInstallVerifier, запускаемый внутри ГУ.
 * `Geely-ADB-Toggle-1.1.0.apk` — вспомогательное приложение переключателя ADB.
-* `Geely_EX5_EMi_ADB_A4_v3.pdf` — схема разборки и подключения платы DHU.
 
 ---
 

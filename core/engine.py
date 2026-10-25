@@ -351,8 +351,8 @@ def test_adb_connection():
         STATE.device_serial = None
         STATE.log("❌ Автомобиль не обнаружен на шине USB (список adb devices пуст).", "warning")
         STATE.log("💡 Совет:", "info")
-        STATE.log("   • Если вы уже открывали ADB и обновились у ОД (2.1.4.5+): проверьте кабель USB-A в нижнем разъёме тоннеля и включите зажигание (START без тормоза).", "info")
-        STATE.log("   • Если вы открываете ADB впервые с нуля: салон ещё не вскрыт, выполните Шаг 1 с перемычкой.", "info")
+        STATE.log("   • Если вы уже открывали ADB и обновились у ОД (2.1.4.5+): проверьте кабель USB-A и включите зажигание автомобиля.", "info")
+        STATE.log("   • Если вы открываете ADB впервые: убедитесь, что перемычка установлена и запущен сценарий сброса настроек.", "info")
         res = {
             "ok": True,
             "connected": False,
@@ -419,8 +419,8 @@ def test_adb_connection():
     needs_unlock = parrot_locked or verifier_active or not toggle_installed
     if needs_unlock:
         recommendation = "quick_unlock"
-        STATE.log("💡 ВЕРДИКТ: ADB активен! Разбирать салон и ставить перемычку НЕ НУЖНО!", "success")
-        STATE.log("💡 После обновления прошивки у ОД достаточно запустить экспресс-снятие ограничений в 1 клик.", "success")
+        STATE.log("💡 ВЕРДИКТ: ADB активен! Перемычка НЕ требуется.", "success")
+        STATE.log("💡 Достаточно запустить экспресс-снятие ограничений в 1 клик.", "success")
     else:
         recommendation = "ready"
         STATE.log("🎉 ВЕРДИКТ: Все блокировки уже сняты! ГУ полностью готово к установке приложений через GeelyTune.", "success")
@@ -437,7 +437,7 @@ def test_adb_connection():
         "toggle_installed": toggle_installed,
         "needs_unlock": needs_unlock,
         "recommendation": recommendation,
-        "message": "ADB активен! Разборка салона не требуется." if needs_unlock else "ГУ полностью разблокировано!"
+        "message": "ADB активен! Перемычка не требуется." if needs_unlock else "ГУ полностью разблокировано!"
     }
     STATE.last_test = res
     return res
@@ -476,7 +476,7 @@ def worker_catch_factory_reset():
 
         if "Set property" in combined_out:
             STATE.log("🎉 УСПЕХ! Автомобиль подтвердил фиксацию порта (Set property)! Постоянный ADB активирован.", "success")
-            STATE.set_status("success", "ADB зафиксирован! Выключите питание авто, выньте перемычку и нажмите «Продолжить».", 3)
+            STATE.set_status("success", "ADB зафиксирован! Выключите зажигание, снимите перемычку и снова включите зажигание.", 3)
             return
 
         if "Must be root" in combined_out:
@@ -490,7 +490,7 @@ def worker_reboot_and_verify():
     """Reboots HU without jumper and waits for full boot."""
     STATE.set_status("working", "Перезагрузка ГУ... Это займет около 1.5 - 2 минут.", 3)
     STATE.log("🔄 Отправляем команду перезагрузки головного устройства...", "cmd")
-    STATE.log("💡 Пояснение: перемычка уже вынута, теперь мы проверяем, сохраняется ли доступ по ADB в обычном рабочем режиме автомобиля.", "info")
+    STATE.log("💡 Пояснение: перемычка снята, теперь мы проверяем, сохраняется ли доступ по ADB в обычном рабочем режиме автомобиля.", "info")
     run_adb(["reboot"], timeout=10)
     time.sleep(15)
 
