@@ -113,4 +113,18 @@ jobs:
           name: Geely ADB Unlock Master ${{ github.ref_name == 'main' && 'v2.1.4.5' || github.ref_name }}
           draft: false
           prerelease: false
-          generate_release_notes: false
+          body: |
+            ### 🚀 Geely ADB Unlock Master (Zero-Dependency Native TUI/CLI)
+
+            Универсальное автономное решение для постоянной разблокировки ADB и снятия ограничений установки сторонних приложений на автомобилях Geely (включая Geely EX5 EM-i / Flyme Auto / Ecarx).
+
+            #### 📦 Скачать одиночный файл под вашу систему:
+            * **Windows 10/11:** `GeelyUnlock.exe` (запуск двойным кликом, установка Python не требуется)
+            * **macOS (Apple Silicon & Intel):** `GeelyUnlock-macOS` (`chmod +x GeelyUnlock-macOS && ./GeelyUnlock-macOS`)
+            * **Linux (Ubuntu / Debian / Fedora):** `GeelyUnlock-Linux` (`chmod +x GeelyUnlock-Linux && ./GeelyUnlock-Linux`)
+
+            #### ✨ Особенности релиза:
+            * Автономный одиночный исполняемый файл без внешних зависимостей
+            * Встроенные бинарники Google ADB (Windows, macOS, Linux)
+            * Экспресс-снятие защиты после обновления ОД до 2.1.4.5+ и первоначальная разблокировка
+            * Умная проверка и установка переключателя Geely-ADB-Toggle на экран ГУ
