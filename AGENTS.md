@@ -20,15 +20,17 @@
 > ⚠️ **КРИТИЧЕСКОЕ ПРАВИЛО:** Никогда не добавлять в корень проекта временные файлы, вспомогательные скрипты, `.apk`, `.exe` или логи. Всё внутреннее содержимое обязательно должно находиться внутри `core/`.
 
 ### Папка `core/`
-* `web/index.html` — единый современный веб-интерфейс (HTML/CSS/JS) в темной теме с крупными шрифтами и пошаговым визардом.
+* `main.py` — главная точка входа автономного CLI/TUI-приложения.
+* `engine.py` — независимый движок бизнес-логики (ADB, VHAL, Parrot, AutoInstallVerifier, проверка ГУ).
+* `tui.py` — легковесный Zero-Dependency терминальный интерфейс (ASCII-рамки, ANSI-палитра, интерактивное меню).
+* `geely_unlock.exe` — скомпилированный автономный бинарник для Windows со встроенным ADB и ресурсами.
 * `bin/` — встроенные бинарники Android Debug Bridge:
   * `adb.exe`, `AdbWinApi.dll`, `AdbWinUsbApi.dll` — для Windows.
   * `adb-darwin` — для macOS.
   * `adb-linux` — для Linux.
-* `server.py` — локальный HTTP REST-сервер и диспетчер команд.
-* `geely_unlock.exe` — скомпилированный автономный бинарник для Windows.
 * `unlock-hu.sh` — скрипт снятия защиты Parrot и AutoInstallVerifier, запускаемый внутри ГУ.
 * `Geely-ADB-Toggle-1.1.0.apk` — вспомогательное приложение переключателя ADB.
+* `server.py` и `web/` — легаси веб-сервер (сохранен для обратной совместимости при необходимости).
 
 ---
 
@@ -41,12 +43,11 @@
    * Всегда сохранять строго с переводами строк **LF (`\n`)**.
    * Обязательно указывать шебанг `#!/usr/bin/env bash`.
    * Включать авто-раздачу прав `chmod +x` на бинарники ADB и скрипты.
-3. **Python движок (`core/server.py`):**
-   * Не должен иметь внешних `pip`-зависимостей (использовать только стандартную библиотеку Python: `http.server`, `subprocess`, `threading`, `json`, `urllib`).
-   * Для Windows консоли обязательно использовать безопасный вывод (перенастройка `sys.stdout.reconfigure(encoding='utf-8')` и перехват исключений при печати эмодзи, чтобы не вызывать `UnicodeEncodeError` в CP1251).
-   * При компиляции через PyInstaller: пути `BASE_DIR` определять через `sys.executable`, если `getattr(sys, 'frozen', False)`.
-4. **Порты и процессы:**
-   * Сервер слушает `127.0.0.1:8765` (с авто-перебором до 8775 при занятости).
+3. **Python движок и TUI (`core/engine.py`, `core/tui.py`, `core/main.py`):**
+   * Строго **Zero-Dependency**: никаких внешних `pip`-зависимостей (только стандартная библиотека Python: `subprocess`, `threading`, `time`, `os`, `sys`, `ctypes`, `platform`, `webbrowser`, `urllib`).
+   * Для Windows консоли обязательно использовать включение ANSI VT100 через `ctypes.windll.kernel32.SetConsoleMode` и безопасный вывод `sys.stdout.reconfigure(encoding='utf-8')`.
+   * При компиляции через PyInstaller: ресурсы (ADB, скрипт, APK) зашиваются внутрь бинарника и извлекаются через `get_resource_path()` (`sys._MEIPASS`).
+4. **Процессы:**
    * Перед началом работы движок автоматически очищает старые зависшие процессы ADB (`taskkill /F /IM adb.exe` / `killall -9 adb`).
 
 ---

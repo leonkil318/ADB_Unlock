@@ -6,20 +6,22 @@ echo   Starting Geely ADB Unlock Master...
 echo ===================================================
 echo.
 
+title Geely ADB Unlock Master
+
 if exist "core\geely_unlock.exe" (
-    start "" "core\geely_unlock.exe"
+    "core\geely_unlock.exe"
     exit /b 0
 )
 
 where python >nul 2>&1
 if not errorlevel 1 (
-    start "" python "core\server.py"
+    python "core\main.py"
     exit /b 0
 )
 
 where py >nul 2>&1
 if not errorlevel 1 (
-    start "" py "core\server.py"
+    py "core\main.py"
     exit /b 0
 )
 

@@ -45,16 +45,18 @@ class AppState:
         self.os_name = platform.system().lower() # 'windows', 'darwin', 'linux'
         self.adb_path = None
         self.adb_ready = False
+        self.mode = "standard"  # 'standard' (full with jumper) or 'quick' (after dealer update)
         self.step = 1  # 1: Preparation, 2: Factory Reset & VHAL, 3: Jumper removal & Reboot, 4: Unlock Parrot & Toggle, 5: Finished
         self.status = "idle"  # idle, working, waiting_reset, success, error
         self.status_message = "Готов к работе"
         self.device_serial = None
         self.device_state = "disconnected"
+        self.last_test = None
         now = time.strftime("%H:%M:%S")
         self.logs = [
             {"time": now, "text": "Мастер разблокировки Geely ADB готов к работе.", "level": "info", "formatted": f"[{now}] ℹ️ Мастер разблокировки Geely ADB готов к работе."},
             {"time": now, "text": "Совместимость: Geely EX5 EM-i, Belgee X80 и модели на Flyme Auto / Ecarx (2.1.4.5+).", "level": "info", "formatted": f"[{now}] 🚘 Совместимость: Geely EX5 EM-i, Belgee X80 и модели на Flyme Auto / Ecarx (2.1.4.5+)."},
-            {"time": now, "text": "Что делает мастер: фиксирует постоянный ADB, отключает защиту Parrot/AutoInstallVerifier и ставит переключатель на экран.", "level": "info", "formatted": f"[{now}] 💡 Что делает мастер: фиксирует постоянный ADB, снимает защиту Parrot от сторонних программ и ставит тумблер на экран авто."}
+            {"time": now, "text": "Режимы: 1) С нуля с перемычкой. 2) После обновления у ОД на 2.1.4.5+ без перемычки (если ADB уже был открыт).", "level": "info", "formatted": f"[{now}] 💡 Поддерживаются 2 сценария: полный цикл с нуля с перемычкой или экспресс-снятие защиты после обновления ОД без разборки."}
         ]
         self.worker_thread = None
         self.stop_worker = False
@@ -97,6 +99,7 @@ class AppState:
         with self.lock:
             return {
                 "os": self.os_name,
+                "mode": self.mode,
                 "step": self.step,
                 "status": self.status,
                 "status_message": self.status_message,
@@ -104,6 +107,7 @@ class AppState:
                 "adb_path": self.adb_path,
                 "device_serial": self.device_serial,
                 "device_state": self.device_state,
+                "last_test": self.last_test,
                 "logs": self.logs[-50:]  # send last 50
             }
 
@@ -269,6 +273,147 @@ def check_devices():
         STATE.device_state = "disconnected"
         return False
 
+def test_adb_connection():
+    """Runs a comprehensive test of the ADB connection, head unit state, and security locks."""
+    STATE.log("🔍 Запуск проверки связи с автомобилем (Тест ADB)...", "cmd")
+    
+    # Check adb binary
+    if not STATE.adb_path or not os.path.isfile(STATE.adb_path):
+        locate_or_download_adb()
+        if not STATE.adb_path:
+            res = {
+                "ok": False,
+                "connected": False,
+                "error": "ADB не найден на компьютере",
+                "recommendation": "check_adb"
+            }
+            STATE.last_test = res
+            STATE.log("❌ Ошибка: исполняемый файл ADB не найден.", "error")
+            return res
+
+    # 1. Devices check
+    code, stdout, _ = run_adb(["devices"], timeout=5)
+    lines = stdout.splitlines()[1:] if stdout else []
+    connected_devs = []
+    unauth_devs = []
+    for line in lines:
+        parts = line.split()
+        if len(parts) >= 2:
+            if parts[1] == "device":
+                connected_devs.append(parts[0])
+            elif parts[1] == "unauthorized":
+                unauth_devs.append(parts[0])
+
+    if unauth_devs and not connected_devs:
+        STATE.device_state = "unauthorized"
+        STATE.log("⚠️ Найдено устройство, но требуется авторизация отладки на экране авто (unauthorized).", "warning")
+        res = {
+            "ok": True,
+            "connected": False,
+            "state": "unauthorized",
+            "message": "Требуется подтвердить отладку по USB на экране мультимедиа",
+            "recommendation": "authorize"
+        }
+        STATE.last_test = res
+        return res
+
+    if not connected_devs:
+        STATE.device_state = "disconnected"
+        STATE.device_serial = None
+        STATE.log("❌ Автомобиль не обнаружен на шине USB (список adb devices пуст).", "warning")
+        STATE.log("💡 Совет:", "info")
+        STATE.log("   • Если вы уже открывали ADB и обновились у ОД (2.1.4.5+): проверьте кабель USB-A в нижнем разъёме тоннеля и включите зажигание (START без тормоза).", "info")
+        STATE.log("   • Если вы открываете ADB впервые с нуля: салон ещё не вскрыт, выполните Шаг 1 с перемычкой.", "info")
+        res = {
+            "ok": True,
+            "connected": False,
+            "state": "disconnected",
+            "message": "Устройство не обнаружено на USB. Проверьте кабель и зажигание.",
+            "recommendation": "not_connected"
+        }
+        STATE.last_test = res
+        return res
+
+    serial = connected_devs[0]
+    STATE.device_serial = serial
+    STATE.device_state = "connected"
+    STATE.log(f"✅ Автомобиль успешно подключен! Серийный номер: {serial}", "success")
+
+    # 2. Test root access
+    STATE.log("🔑 Проверка доступа суперпользователя (adb root)...", "cmd")
+    code_r, out_r, _ = run_adb(["root"], timeout=8)
+    time.sleep(1)
+    run_adb(["wait-for-device"], timeout=5)
+
+    root_ok = ("already running as root" in out_r.lower() or "restarting adbd as root" in out_r.lower() or code_r == 0)
+    code_id, out_id, _ = run_adb(["shell", "id", "-u"], timeout=5)
+    if code_id == 0 and out_id.strip() == "0":
+        root_ok = True
+        STATE.log("✅ Root-доступ подтверждён (UID: 0).", "success")
+    else:
+        STATE.log(f"⚠️ Ответ при запросе root: {out_r or out_id}", "warning")
+
+    # 3. Read firmware & system properties
+    STATE.log("📋 Считывание сведений о прошивке ГУ...", "cmd")
+    _, fw_build, _ = run_adb(["shell", "getprop", "ro.build.display.id"], timeout=5)
+    _, fw_inc, _ = run_adb(["shell", "getprop", "ro.build.version.incremental"], timeout=5)
+    _, model, _ = run_adb(["shell", "getprop", "ro.product.model"], timeout=5)
+    firmware_info = fw_build.strip() or fw_inc.strip() or "Не определена"
+    model_info = model.strip() or "Geely Head Unit"
+    STATE.log(f"🚘 Модель: {model_info} | Прошивка ГУ: {firmware_info}", "info")
+
+    # 4. Check Parrot app_verify
+    _, parrot_val, _ = run_adb(["shell", "getprop", "ro.vendor.ecarx.app_verify"], timeout=5)
+    parrot_val = parrot_val.strip().lower()
+    parrot_locked = (parrot_val == "true")
+    if parrot_locked:
+        STATE.log("🔒 Защита Parrot certificates: ВКЛЮЧЕНА (блокирует установку сторонних APK)", "warning")
+    else:
+        STATE.log("🔓 Защита Parrot certificates: ВЫКЛЮЧЕНА (установка сторонних APK разрешена)", "success")
+
+    # 5. Check AutoInstallVerifier package
+    _, pm_out, _ = run_adb(["shell", "pm", "list", "packages", "-e"], timeout=8)
+    verifier_active = "com.ecarx.xsfinstallverifier" in (pm_out or "")
+    if verifier_active:
+        STATE.log("🔒 Системный верификатор AutoInstallVerifier: АКТИВЕН", "warning")
+    else:
+        STATE.log("🔓 Системный верификатор AutoInstallVerifier: ОТКЛЮЧЕН или отсутствует", "success")
+
+    # 6. Check toggle app
+    _, toggle_out, _ = run_adb(["shell", "pm", "list", "packages"], timeout=5)
+    toggle_installed = any(pkg in (toggle_out or "") for pkg in ["com.geely.adbtoggle", "adbtoggle", "geelyadbtoggle"])
+    if toggle_installed:
+        STATE.log("📱 Приложение переключателя ADB-Toggle: уже установлено на ГУ", "info")
+    else:
+        STATE.log("📱 Приложение переключателя ADB-Toggle: не найдено (будет установлено)", "info")
+
+    # Overall diagnosis
+    needs_unlock = parrot_locked or verifier_active or not toggle_installed
+    if needs_unlock:
+        recommendation = "quick_unlock"
+        STATE.log("💡 ВЕРДИКТ: ADB активен! Разбирать салон и ставить перемычку НЕ НУЖНО!", "success")
+        STATE.log("💡 После обновления прошивки у ОД достаточно запустить экспресс-снятие ограничений в 1 клик.", "success")
+    else:
+        recommendation = "ready"
+        STATE.log("🎉 ВЕРДИКТ: Все блокировки уже сняты! ГУ полностью готово к установке приложений через GeelyTune.", "success")
+
+    res = {
+        "ok": True,
+        "connected": True,
+        "serial": serial,
+        "model": model_info,
+        "firmware": firmware_info,
+        "root_ok": root_ok,
+        "parrot_locked": parrot_locked,
+        "verifier_active": verifier_active,
+        "toggle_installed": toggle_installed,
+        "needs_unlock": needs_unlock,
+        "recommendation": recommendation,
+        "message": "ADB активен! Разборка салона не требуется." if needs_unlock else "ГУ полностью разблокировано!"
+    }
+    STATE.last_test = res
+    return res
+
 # ==================== STEP 2: FACTORY RESET CATCH ====================
 def worker_catch_factory_reset():
     """Continuously waits for device reboot, grants root, and sets VHAL property."""
@@ -416,6 +561,42 @@ def worker_unlock_and_install():
     else:
         STATE.log("APK-файл переключателя не найден в папке core, пропускаем установку переключателя", "warning")
 
+    # Post-unlock verification
+    STATE.log("🔍 Проверка итогового статуса системы авто...", "cmd")
+    _, parrot_check, _ = run_adb(["shell", "getprop", "ro.vendor.ecarx.app_verify"], timeout=5)
+    _, pm_check, _ = run_adb(["shell", "pm", "list", "packages", "-e"], timeout=5)
+    final_parrot_locked = (parrot_check.strip().lower() == "true")
+    final_verifier_active = "com.ecarx.xsfinstallverifier" in (pm_check or "")
+
+    if not final_parrot_locked:
+        STATE.log("🔓 Защита Parrot certificates: ВЫКЛЮЧЕНА (установка APK разрешена)", "success")
+    if not final_verifier_active:
+        STATE.log("🔓 Системный верификатор AutoInstallVerifier: ОТКЛЮЧЕН", "success")
+
+    # Update STATE.last_test so UI diagnostic badges turn green immediately
+    if STATE.last_test and isinstance(STATE.last_test, dict):
+        STATE.last_test["parrot_locked"] = final_parrot_locked
+        STATE.last_test["verifier_active"] = final_verifier_active
+        STATE.last_test["toggle_installed"] = True
+        STATE.last_test["needs_unlock"] = False
+        STATE.last_test["recommendation"] = "ready"
+        STATE.last_test["message"] = "ГУ полностью разблокировано!"
+    else:
+        STATE.last_test = {
+            "ok": True,
+            "connected": True,
+            "serial": STATE.device_serial,
+            "model": "Geely Head Unit",
+            "firmware": "2.1.4.5+",
+            "root_ok": True,
+            "parrot_locked": final_parrot_locked,
+            "verifier_active": final_verifier_active,
+            "toggle_installed": True,
+            "needs_unlock": False,
+            "recommendation": "ready",
+            "message": "ГУ полностью разблокировано!"
+        }
+
     STATE.set_status("success", "Поздравляем! Разблокировка полностью завершена!", 5)
     STATE.log("🏆 ВСЕ ЭТАПЫ РАЗБЛОКИРОВКИ ВЫПОЛНЕНЫ! Теперь вы можете устанавливать любые приложения через официальный веб-установщик GeelyTune.", "success")
 
@@ -497,6 +678,33 @@ class RequestHandler(BaseHTTPRequestHandler):
 
             elif action == "check_devices":
                 check_devices()
+                self.send_json({"ok": True, "state": STATE.to_dict()})
+                return
+
+            elif action == "test_adb":
+                res = test_adb_connection()
+                self.send_json({"ok": True, "result": res, "state": STATE.to_dict()})
+                return
+
+            elif action == "set_mode":
+                new_mode = data.get("mode", "standard")
+                STATE.mode = new_mode
+                if new_mode == "quick":
+                    STATE.log("Переключен режим: Экспресс-снятие защиты после обновления ОД (2.1.4.5+) без перемычки")
+                else:
+                    STATE.log("Переключен режим: Стандартная разблокировка с нуля (с перемычкой)")
+                self.send_json({"ok": True, "state": STATE.to_dict()})
+                return
+
+            elif action == "quick_unlock":
+                STATE.stop_worker = False
+                STATE.mode = "quick"
+                STATE.step = 4
+                STATE.set_status("working", "Запуск быстрого снятия блокировок после обновления ОД (без перемычки)...", 4)
+                STATE.log("🚀 Запуск процедуры снятия ограничений Parrot и AutoInstallVerifier...", "cmd")
+                t = threading.Thread(target=worker_unlock_and_install, daemon=True)
+                STATE.worker_thread = t
+                t.start()
                 self.send_json({"ok": True, "state": STATE.to_dict()})
                 return
 

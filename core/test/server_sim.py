@@ -201,6 +201,35 @@ def sim_worker_step4():
     STATE.log("✅ [ТЕСТ] Приложение Geely-ADB-Toggle успешно установлено в профиль пользователя!", "success")
     time.sleep(1.0)
 
+    # Post-unlock verification simulation
+    STATE.log("[ТЕСТ] Проверка итогового статуса системы авто...", "cmd")
+    STATE.log("🔓 [ТЕСТ] Защита Parrot certificates: ВЫКЛЮЧЕНА (false)", "success")
+    STATE.log("🔓 [ТЕСТ] Системный верификатор AutoInstallVerifier: ОТКЛЮЧЕН", "success")
+
+    # Update STATE.last_test to reflect that locks are removed
+    if STATE.last_test and isinstance(STATE.last_test, dict):
+        STATE.last_test["parrot_locked"] = False
+        STATE.last_test["verifier_active"] = False
+        STATE.last_test["toggle_installed"] = True
+        STATE.last_test["needs_unlock"] = False
+        STATE.last_test["recommendation"] = "ready"
+        STATE.last_test["message"] = "ГУ полностью разблокировано!"
+    else:
+        STATE.last_test = {
+            "ok": True,
+            "connected": True,
+            "serial": STATE.device_serial or "GEELY_EX5_TEST_883",
+            "model": "Geely EX5 EM-i (Flyme Auto)",
+            "firmware": "24.07.01.262972 (2.1.4.5+)",
+            "root_ok": True,
+            "parrot_locked": False,
+            "verifier_active": False,
+            "toggle_installed": True,
+            "needs_unlock": False,
+            "recommendation": "ready",
+            "message": "ГУ полностью разблокировано!"
+        }
+
     STATE.set_status("success", "Поздравляем! Разблокировка полностью завершена!", 5)
     STATE.log("🏆 [ТЕСТ] ВСЕ ЭТАПЫ РАЗБЛОКИРОВКИ ВЫПОЛНЕНЫ! Теперь вы можете устанавливать любые приложения через официальный веб-установщик GeelyTune.", "success")
 
@@ -325,6 +354,54 @@ class SimRequestHandler(BaseHTTPRequestHandler):
                 STATE.scenario = data.get("scenario", "success")
                 STATE.log(f"[ТЕСТ] Выбран сценарий тестирования: {STATE.scenario}", "info")
                 self.send_json({"ok": True, "scenario": STATE.scenario})
+                return
+
+            elif action == "test_adb":
+                STATE.log("[ТЕСТ] Имитация проверки связи с автомобилем (Тест ADB)...", "cmd")
+                time.sleep(0.8)
+                is_connected = STATE.scenario != "timeout_error"
+                res = {
+                    "ok": True,
+                    "connected": is_connected,
+                    "serial": "GEELY_EX5_TEST_883" if is_connected else None,
+                    "model": "Geely EX5 EM-i (Flyme Auto)" if is_connected else None,
+                    "firmware": "24.07.01.262972 (2.1.4.5+)" if is_connected else None,
+                    "root_ok": is_connected,
+                    "parrot_locked": is_connected,
+                    "verifier_active": is_connected,
+                    "toggle_installed": False,
+                    "needs_unlock": is_connected,
+                    "recommendation": "quick_unlock" if is_connected else "not_connected",
+                    "message": "ADB активен! Разборка салона не требуется." if is_connected else "Устройство не обнаружено."
+                }
+                if is_connected:
+                    STATE.device_state = "connected"
+                    STATE.device_serial = "GEELY_EX5_TEST_883"
+                    STATE.log("✅ [ТЕСТ] Автомобиль подключен: Geely EX5 EM-i | Прошивка: 24.07.01.262972 (2.1.4.5+)", "success")
+                    STATE.log("🔒 [ТЕСТ] Защита Parrot certificates: ВКЛЮЧЕНА (блокирует сторонние APK)", "warning")
+                    STATE.log("💡 [ТЕСТ] ВЕРДИКТ: ADB активен! Разбирать салон не нужно, достаточно экспресс-снятия блокировок.", "success")
+                else:
+                    STATE.device_state = "disconnected"
+                    STATE.device_serial = None
+                    STATE.log("❌ [ТЕСТ] Устройство не обнаружено по ADB.", "warning")
+                self.send_json({"ok": True, "result": res, "state": STATE.to_dict()})
+                return
+
+            elif action == "set_mode":
+                mode = data.get("mode", "standard")
+                STATE.log(f"[ТЕСТ] Режим переключен на: {mode}", "info")
+                self.send_json({"ok": True, "state": STATE.to_dict()})
+                return
+
+            elif action == "quick_unlock":
+                STATE.stop_worker = False
+                STATE.step = 4
+                STATE.set_status("working", "[ТЕСТ] Экспресс-снятие блокировок после обновления ОД...", 4)
+                STATE.log("🚀 [ТЕСТ] Запуск скрипта снятия Parrot и AutoInstallVerifier...", "cmd")
+                t = threading.Thread(target=sim_worker_step4, daemon=True)
+                STATE.worker_thread = t
+                t.start()
+                self.send_json({"ok": True, "state": STATE.to_dict()})
                 return
 
             elif action == "start_step2_listen":

@@ -12,6 +12,7 @@ core/build/
 core/*.spec
 build/
 dist/
+releases/
 *.spec
 
 # OS & media

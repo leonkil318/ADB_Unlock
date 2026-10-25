@@ -14,19 +14,18 @@ description: >-
 
 ## 1. Архитектура приложения
 
-Приложение построено по гибридной архитектуре: **Локальный оркестратор (Python / exe) + Адаптивный Web UI**.
+Приложение построено по схеме **Zero-Dependency Native TUI/CLI Application**:
 
 ```text
                ┌────────────────────────────────────────────────────────┐
-               │                  Браузер пользователя                 │
-               │   (http://127.0.0.1:8765 -> core/web/index.html)       │
+               │        Окно консоли (cmd / PowerShell / Terminal)      │
+               │        Строгий ретро TUI-интерфейс (core/tui.py)       │
                └──────────────────────────┬─────────────────────────────┘
-                                          │  REST API (GET /api/status,
-                                          │            POST /api/action)
+                                          │  Прямые вызовы функций Python
                                           ▼
                ┌────────────────────────────────────────────────────────┐
-               │          Локальный сервер (core/server.py)             │
-               │    или скомпилированный бинарник core/geely_unlock.exe │
+               │         Движок бизнес-логики (core/engine.py)          │
+               │    или автономный бинарник core/geely_unlock.exe       │
                └──────────────────────────┬─────────────────────────────┘
                                           │
                                           │  Команды ADB (subprocesses)
@@ -48,30 +47,23 @@ description: >-
 
 ## 2. Ключевые компоненты
 
-### 1. `core/server.py`
-* Встроенный HTTP-сервер на базе стандартной библиотеки `http.server.HTTPServer`.
+### 1. `core/engine.py`
+* Чистая бизнес-логика без привязки к интерфейсу.
 * Фоновые потоки `threading.Thread` для долгих операций (захват VHAL, опрос перезагрузки ГУ, выполнение `unlock-hu.sh`).
-* Автоматическая кроссплатформенная очистка старых демонов ADB (`taskkill` / `killall`).
-* Определение путей `BASE_DIR`:
-  ```python
-  if getattr(sys, 'frozen', False):
-      BASE_DIR = os.path.dirname(os.path.abspath(sys.executable))
-  else:
-      BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-  ```
+* Очистка зависших процессов ADB.
+* Функция `get_resource_path()` для корректной работы с ресурсами из `sys._MEIPASS` при сборке в один `.exe`.
 
-### 2. `core/web/index.html`
-* Автономный одностраничный веб-интерфейс (HTML/CSS/JS без внешних npm-библиотек).
-* 4-этапный мастер (Stepper):
-  1. Подготовка и перемычка.
-  2. Сброс настроек (Factory Reset) и автоматический захват 20-секундного окна.
-  3. Извлечение перемычки и перезагрузка ГУ.
-  4. Снятие ограничений установки и финал (переход к GeelyTune).
-* Опрос состояния через `pollStatus()` раз в 1 секунду.
-* Интерактивный терминал логов с автопрокруткой.
-* Кнопка безопасного выгружения движка из памяти (`POST /api/action` с `action: shutdown`).
+### 2. `core/tui.py`
+* Zero-Dependency отрисовка интерфейса через чистые ANSI-коды.
+* Автоматическая активация ANSI VT100 на Windows (`SetConsoleMode`).
+* Статус-панель связи с ГУ, блокировок Parrot и AutoInstallVerifier.
+* Интерактивное меню с цифрами [1-6], живой терминальный логгер с анимированным спиннером.
+* Шпаргалка по разборке салона прямо в терминале.
 
-### 3. Бинарники `core/bin/`
+### 3. `core/main.py`
+* Главная точка входа консольного приложения.
+
+### 4. Бинарники `core/bin/`
 * `adb.exe`, `AdbWinApi.dll`, `AdbWinUsbApi.dll` — для Windows.
 * `adb-darwin` — для macOS (Universal x86_64 / arm64).
 * `adb-linux` — для Linux (x86_64).
@@ -81,11 +73,11 @@ description: >-
 ## 3. Процедуры обслуживания и сборки
 
 ### Как пересобрать `core/geely_unlock.exe` (для Windows)
-При изменении `core/server.py` автономный исполняемый файл пересобирается через PyInstaller:
+Автономный исполняемый файл пересобирается с упаковкой ресурсов внутрь:
 
 ```cmd
 cd /d d:\ADB_Unlock\core
-pyinstaller --onefile --name "geely_unlock" --distpath "d:\ADB_Unlock\core" --workpath "d:\ADB_Unlock\core\build" --specpath "d:\ADB_Unlock\core" "d:\ADB_Unlock\core\server.py"
+python -m PyInstaller --clean --onefile --name "geely_unlock" --distpath "d:\ADB_Unlock\core" --workpath "d:\ADB_Unlock\core\build" --specpath "d:\ADB_Unlock\core" --add-data "d:\ADB_Unlock\core\bin\adb.exe;bin" --add-data "d:\ADB_Unlock\core\bin\AdbWinApi.dll;bin" --add-data "d:\ADB_Unlock\core\bin\AdbWinUsbApi.dll;bin" --add-data "d:\ADB_Unlock\core\unlock-hu.sh;." --add-data "d:\ADB_Unlock\core\Geely-ADB-Toggle-1.1.0.apk;." "d:\ADB_Unlock\core\main.py"
 ```
 
 После сборки удалить временные файлы:

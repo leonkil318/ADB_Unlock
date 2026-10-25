@@ -110,6 +110,35 @@
       margin-left: 8px;
     }
 
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-head-test {
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(59, 130, 246, 0.24));
+      border: 1px solid rgba(34, 211, 238, 0.45);
+      color: #38bdf8;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 18px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s;
+      font-family: var(--font);
+    }
+    .btn-head-test:hover {
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.3), rgba(59, 130, 246, 0.4));
+      color: #fff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 14px rgba(34, 211, 238, 0.35);
+    }
+    .btn-head-test:active { transform: scale(0.97); }
+
     .header-step-pill {
       display: inline-flex;
       align-items: center;
@@ -121,6 +150,185 @@
       background: rgba(59, 130, 246, 0.12);
       border: 1px solid rgba(59, 130, 246, 0.28);
       color: #93c5fd;
+    }
+
+    /* Mode selector (tabs) */
+    .mode-selector-wrap {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .mode-selector-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .mode-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .mode-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 9px;
+      padding: 8px 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.2s;
+      text-align: center;
+      font-family: var(--font);
+    }
+    .mode-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(16, 185, 129, 0.2));
+      border: 1px solid rgba(59, 130, 246, 0.6);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+    .mode-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+    .mode-btn.active .mode-title {
+      color: #fff;
+    }
+    .mode-sub {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      line-height: 1.15;
+    }
+    .mode-sub.highlight {
+      color: #4ade80;
+      font-weight: 600;
+    }
+
+    /* Diagnostics summary card */
+    .diagnostics-panel {
+      background: rgba(8, 14, 28, 0.7);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .diag-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .diag-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-diag-run {
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font);
+      transition: all 0.15s;
+    }
+    .btn-diag-run:hover {
+      background: rgba(34, 211, 238, 0.2);
+      color: #fff;
+      border-color: #38bdf8;
+    }
+    .diag-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+    }
+    .diag-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .diag-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .diag-val {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .diag-val.success { color: #4ade80; }
+    .diag-val.warning { color: #fbbf24; }
+    .diag-val.error { color: #f87171; }
+
+    .diag-alert-action {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15));
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .diag-alert-text {
+      font-size: 12px;
+      line-height: 1.35;
+      color: #e2e8f0;
+    }
+    .diag-alert-text b { color: #4ade80; }
+    .btn-quick-act {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .btn-quick-act:hover {
+      filter: brightness(1.15);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
     }
 
     /* MAIN 2-COLUMN WORKSPACE */
@@ -662,9 +870,7 @@
     }
   </style>
 </head>
-<body>
-
-  <!-- HEADER -->
+<body>  <!-- HEADER -->
   <header>
     <div class="brand">
       <div class="brand-icon">
@@ -674,19 +880,40 @@
         <h1>Geely ADB Unlock Master <span class="tag-model">EX5 EM-i / Belgee X80</span></h1>
       </div>
     </div>
-    <div class="header-step-pill" id="header-step-pill">
-      Шаг 1 из 4 • Подготовка
+    <div class="header-right">
+      <button class="btn-head-test" id="btn-head-test" title="Проверить статус связи ADB с ГУ">
+        <span>🔍</span>
+        <span>Тест ADB / Проверить ГУ</span>
+      </button>
+      <div class="header-step-pill" id="header-step-pill">
+        Шаг 1 из 4 • Подготовка
+      </div>
     </div>
   </header>
 
   <!-- 2-COLUMN WORKSPACE -->
   <div class="workspace">
 
-    <!-- LEFT SIDEBAR: STEPPER & MANUAL ACTIONS -->
+    <!-- LEFT SIDEBAR: STEPS & MANUAL ACTIONS -->
     <aside class="sidebar">
       
-      <!-- STEPPER -->
-      <div class="stepper">
+      <!-- SCENARIO MODE SELECTOR -->
+      <div class="mode-selector-wrap">
+        <div class="mode-selector-label">СЦЕНАРИЙ РАБОТЫ:</div>
+        <div class="mode-selector">
+          <button class="mode-btn active" id="mode-btn-standard" data-mode="standard">
+            <span class="mode-title">1. Полный цикл</span>
+            <span class="mode-sub">С перемычкой (с нуля)</span>
+          </button>
+          <button class="mode-btn" id="mode-btn-quick" data-mode="quick">
+            <span class="mode-title">2. После ОД</span>
+            <span class="mode-sub highlight">Без перемычки (2.1.4.5+)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEPPER (FOR STANDARD MODE) -->
+      <div class="stepper" id="standard-stepper">
         <div class="step-item active" id="step-ind-1">
           <div class="step-num">1</div>
           <div class="step-label">Подготовка и перемычка</div>
@@ -708,6 +935,17 @@
       <!-- DYNAMIC INSTRUCTIONS CARD FOR ACTIVE STEP -->
       <div class="instruction-card" id="instruction-card">
         
+        <!-- QUICK MODE INSTRUCTIONS (AFTER DEALER UPDATE) -->
+        <div class="step-info" id="step-info-quick" style="display: none;">
+          <h3>⚡ Инструкция после обновления ОД:</h3>
+          <ul>
+            <li><b>Разборка салона НЕ нужна:</b> если вы ранее открывали ADB, он остаётся активным в шине VHAL даже после обновления на 2.1.4.5+.</li>
+            <li><b>Кабель:</b> ноутбук соедините кабелем <b>USB-A ↔ USB-A</b> со штатным разъёмом на нижней панели тоннеля (снятая крышка USB).</li>
+            <li><b>Питание авто:</b> нажмите <b>кнопку START без тормоза</b> (экран ГУ должен загореться).</li>
+            <li><b>Действие:</b> нажмите <b>«🔍 Запустить проверку»</b>, а затем <b>«⚡ Снять блокировки в 1 клик»</b>. Программа сама снимет Parrot, отключит верификатор и восстановит тумблер.</li>
+          </ul>
+        </div>
+
         <!-- STEP 1 INSTRUCTIONS -->
         <div class="step-info current" id="step-info-1">
           <h3>🔌 Инструкция для рук:</h3>
@@ -776,6 +1014,59 @@
       <section class="action-card">
         <div class="status-banner" id="status-banner">
           <span id="banner-text">Подключите кабель к сервисному порту USB авто и следуйте подсказкам.</span>
+        </div>
+
+        <!-- DIAGNOSTICS & ADB TEST PANEL -->
+        <div class="diagnostics-panel" id="diagnostics-panel">
+          <div class="diag-head">
+            <div class="diag-title">
+              <span>🔍 Диагностика ГУ и статус ADB</span>
+            </div>
+            <button class="btn-diag-run" id="btn-diag-run">
+              <span>Запустить проверку</span>
+            </button>
+          </div>
+          <div class="diag-grid">
+            <div class="diag-item">
+              <span class="diag-label">Связь ADB</span>
+              <span class="diag-val" id="diag-val-adb"><span style="color:#94a3b8">Не проверялась</span></span>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">Устройство</span>
+              <span class="diag-val" id="diag-val-device">-</span>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">Прошивка ГУ</span>
+              <span class="diag-val" id="diag-val-firmware">-</span>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">Защита Parrot</span>
+              <span class="diag-val" id="diag-val-parrot">-</span>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">Верификатор</span>
+              <span class="diag-val" id="diag-val-verifier">-</span>
+            </div>
+          </div>
+
+          <!-- DYNAMIC ALERT: QUICK UNLOCK PROMPT -->
+          <div class="diag-alert-action" id="diag-alert-quick" style="display: none;">
+            <div class="diag-alert-text">
+              <b>🎉 Обнаружен активный порт ADB!</b> Разборка салона не требуется.<br>
+              После обновления 2.1.4.5+ нужно только снять блокировку установки приложений.
+            </div>
+            <button class="btn-quick-act" id="btn-quick-act">
+              <span>⚡ Снять блокировки в 1 клик</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- QUICK MODE ACTION -->
+        <div class="action-step" id="action-step-quick" style="display: none;">
+          <button class="btn-action primary" id="btn-step-quick">
+            <span>⚡ Снять ограничения установки в 1 клик (без перемычки)</span>
+            <div class="spinner"></div>
+          </button>
         </div>
 
         <!-- STEP 1 ACTION -->
@@ -918,7 +1209,15 @@
     const btnStep2 = document.getElementById('btn-step-2');
     const btnStep3 = document.getElementById('btn-step-3');
     const btnStep4 = document.getElementById('btn-step-4');
+    const btnStepQuick = document.getElementById('btn-step-quick');
+    const btnQuickAct = document.getElementById('btn-quick-act');
     const btnOpenGeelytune = document.getElementById('btn-open-geelytune');
+    const btnHeadTest = document.getElementById('btn-head-test');
+    const btnDiagRun = document.getElementById('btn-diag-run');
+    const modeBtnStandard = document.getElementById('mode-btn-standard');
+    const modeBtnQuick = document.getElementById('mode-btn-quick');
+
+    let currentMode = 'standard'; // 'standard' or 'quick'
 
     // Modal
     const modalDisassembly = document.getElementById('modal-disassembly');
@@ -940,6 +1239,62 @@
     // Switch step view
     function updateStepper(step) {
       currentStep = step;
+
+      // When unlock is finished (step 5), ensure diagnostics reflect that all locks are removed
+      if (step === 5) {
+        const valParrot = document.getElementById('diag-val-parrot');
+        const valVerif = document.getElementById('diag-val-verifier');
+        const alertQuick = document.getElementById('diag-alert-quick');
+        if (valParrot) valParrot.innerHTML = '<span class="diag-val success">🔓 Выключена</span>';
+        if (valVerif) valVerif.innerHTML = '<span class="diag-val success">🔓 Отключен</span>';
+        if (alertQuick) alertQuick.style.display = 'none';
+        if (btnQuickAct) {
+          btnQuickAct.disabled = false;
+          btnQuickAct.textContent = '⚡ Снять блокировки в 1 клик';
+        }
+        if (btnStepQuick) {
+          btnStepQuick.disabled = false;
+          btnStepQuick.classList.remove('loading');
+        }
+      }
+
+      if (currentMode === 'quick') {
+        if (headerStepPill) {
+          headerStepPill.textContent = (step === 5)
+            ? '🎉 Разблокировка завершена'
+            : '⚡ После ОД • Экспресс-снятие защиты';
+        }
+
+        // Hide standard step infos, show quick info
+        for (let i = 1; i <= 5; i++) {
+          const info = document.getElementById(`step-info-${i}`);
+          if (info) info.style.display = 'none';
+        }
+        const quickInfo = document.getElementById('step-info-quick');
+        if (quickInfo) quickInfo.style.display = (step === 5) ? 'none' : 'block';
+        const finishInfo = document.getElementById('step-info-5');
+        if (finishInfo && step === 5) finishInfo.style.display = 'block';
+
+        // Action cards in quick mode
+        for (let i = 1; i <= 4; i++) {
+          const act = document.getElementById(`action-step-${i}`);
+          if (act) act.style.display = 'none';
+        }
+        if (btnStepQuick) {
+          const quickSec = document.getElementById('action-step-quick');
+          if (quickSec) quickSec.style.display = (step === 5) ? 'none' : 'block';
+        }
+        const act5 = document.getElementById('action-step-5');
+        if (act5) act5.style.display = (step === 5) ? 'block' : 'none';
+
+        const promptEl = document.getElementById('terminal-prompt-text');
+        if (promptEl) {
+          promptEl.textContent = (step === 5) ? 'Finished >' : 'Quick Mode >';
+        }
+        return;
+      }
+
+      // STANDARD MODE
       const stepNames = {
         1: 'Шаг 1 из 4 • Подготовка',
         2: 'Шаг 2 из 4 • Сброс настроек ГУ',
@@ -950,6 +1305,11 @@
       if (headerStepPill) {
         headerStepPill.textContent = stepNames[step] || `Шаг ${step} из 4`;
       }
+
+      const quickInfo = document.getElementById('step-info-quick');
+      if (quickInfo) quickInfo.style.display = 'none';
+      const quickSec = document.getElementById('action-step-quick');
+      if (quickSec) quickSec.style.display = 'none';
 
       // Stepper sidebar
       for (let i = 1; i <= 4; i++) {
@@ -979,6 +1339,118 @@
       if (promptEl) {
         promptEl.textContent = `Step ${step} >`;
       }
+    }
+
+    // Set Mode function
+    async function setAppMode(mode) {
+      currentMode = mode;
+      if (modeBtnStandard) modeBtnStandard.classList.toggle('active', mode === 'standard');
+      if (modeBtnQuick) modeBtnQuick.classList.toggle('active', mode === 'quick');
+      const stdStepper = document.getElementById('standard-stepper');
+      if (stdStepper) stdStepper.style.display = (mode === 'standard') ? 'flex' : 'none';
+      updateStepper(currentStep);
+      await apiAction('set_mode', { mode });
+    }
+
+    // Run ADB Test
+    async function runAdbTest() {
+      if (btnHeadTest) btnHeadTest.style.opacity = '0.6';
+      if (btnDiagRun) {
+        btnDiagRun.disabled = true;
+        btnDiagRun.textContent = 'Проверяем...';
+      }
+      try {
+        const res = await apiAction('test_adb');
+        if (res && res.result) {
+          renderTestResult(res.result);
+        }
+      } catch (err) {
+        console.error('Test error:', err);
+      } finally {
+        if (btnHeadTest) btnHeadTest.style.opacity = '1';
+        if (btnDiagRun) {
+          btnDiagRun.disabled = false;
+          btnDiagRun.textContent = 'Запустить проверку';
+        }
+      }
+    }
+
+    // Render diagnostic test result
+    function renderTestResult(r) {
+      if (!r) return;
+      const valAdb = document.getElementById('diag-val-adb');
+      const valDev = document.getElementById('diag-val-device');
+      const valFw = document.getElementById('diag-val-firmware');
+      const valParrot = document.getElementById('diag-val-parrot');
+      const valVerif = document.getElementById('diag-val-verifier');
+      const alertQuick = document.getElementById('diag-alert-quick');
+
+      const isFinished = (currentStep === 5);
+      const parrotLocked = isFinished ? false : r.parrot_locked;
+      const verifierActive = isFinished ? false : r.verifier_active;
+      const needsUnlock = isFinished ? false : r.needs_unlock;
+
+      if (valAdb) {
+        if (r.connected) {
+          valAdb.innerHTML = '<span class="diag-val success">🟢 Активен</span>';
+        } else if (r.state === 'unauthorized') {
+          valAdb.innerHTML = '<span class="diag-val warning">🟡 Не авторизован</span>';
+        } else {
+          valAdb.innerHTML = '<span class="diag-val error">🔴 Не найден</span>';
+        }
+      }
+
+      if (valDev) {
+        valDev.textContent = r.serial ? `${r.model || 'Geely'} (${r.serial})` : (r.connected ? 'Geely Head Unit' : 'Не обнаружено');
+      }
+
+      if (valFw) {
+        valFw.textContent = r.firmware || '-';
+      }
+
+      if (valParrot) {
+        if (r.connected) {
+          valParrot.innerHTML = parrotLocked
+            ? '<span class="diag-val warning">🔒 Блокирует</span>'
+            : '<span class="diag-val success">🔓 Выключена</span>';
+        } else {
+          valParrot.textContent = '-';
+        }
+      }
+
+      if (valVerif) {
+        if (r.connected) {
+          valVerif.innerHTML = verifierActive
+            ? '<span class="diag-val warning">🔒 Включен</span>'
+            : '<span class="diag-val success">🔓 Выключен</span>';
+        } else {
+          valVerif.textContent = '-';
+        }
+      }
+
+      if (alertQuick) {
+        alertQuick.style.display = (r.connected && needsUnlock && !isFinished) ? 'flex' : 'none';
+      }
+
+      // If user is on step 1 of standard mode and ADB is already connected, notify user
+      if (r.connected && currentMode === 'standard' && currentStep === 1 && needsUnlock) {
+        if (bannerText) {
+          bannerText.innerHTML = '🎉 <b>ADB уже активен!</b> Разборка салона не требуется. Нажмите «Снять блокировки в 1 клик» в панели диагностики.';
+        }
+      }
+    }
+
+    // Quick Unlock action
+    async function startQuickUnlock() {
+      if (btnStepQuick) {
+        btnStepQuick.disabled = true;
+        btnStepQuick.classList.add('loading');
+      }
+      if (btnQuickAct) {
+        btnQuickAct.disabled = true;
+        btnQuickAct.textContent = 'Выполняется...';
+      }
+      await apiAction('quick_unlock');
     }
 
     // Append logs
@@ -1034,13 +1506,27 @@
         const data = await res.json();
 
         const newMsg = data.status_message || 'Готов к работе';
-        if (bannerText.textContent !== newMsg) bannerText.textContent = newMsg;
+        if (bannerText && bannerText.textContent !== newMsg && !bannerText.innerHTML.includes('ADB уже активен')) {
+          bannerText.textContent = newMsg;
+        }
 
         const expectedClass = 'status-banner' + (data.status === 'error' ? ' error' : (data.status === 'success' ? ' success' : (data.status === 'working' ? ' warning' : '')));
-        if (statusBanner.className !== expectedClass) statusBanner.className = expectedClass;
+        if (statusBanner && statusBanner.className !== expectedClass) statusBanner.className = expectedClass;
+
+        if (data.mode && data.mode !== currentMode) {
+          currentMode = data.mode;
+          if (modeBtnStandard) modeBtnStandard.classList.toggle('active', currentMode === 'standard');
+          if (modeBtnQuick) modeBtnQuick.classList.toggle('active', currentMode === 'quick');
+          const stdStepper = document.getElementById('standard-stepper');
+          if (stdStepper) stdStepper.style.display = (currentMode === 'standard') ? 'flex' : 'none';
+        }
 
         if (data.step && data.step !== currentStep) {
           updateStepper(data.step);
+        }
+
+        if (data.last_test) {
+          renderTestResult(data.last_test);
         }
 
         isWorking = data.status === 'working';
@@ -1050,13 +1536,14 @@
         }
         const promptEl = document.getElementById('terminal-prompt-text');
         if (promptEl) {
-          promptEl.textContent = isWorking ? 'Running task >' : `Step ${currentStep} >`;
+          promptEl.textContent = isWorking ? 'Running task >' : (currentMode === 'quick' ? 'Quick Mode >' : `Step ${currentStep} >`);
         }
 
         if (btnStep1) btnStep1.classList.toggle('loading', isWorking && currentStep === 1);
         if (btnStep2) btnStep2.classList.toggle('loading', isWorking && currentStep === 2);
         if (btnStep3) btnStep3.classList.toggle('loading', isWorking && currentStep === 3);
         if (btnStep4) btnStep4.classList.toggle('loading', isWorking && currentStep === 4);
+        if (btnStepQuick) btnStepQuick.classList.toggle('loading', isWorking && currentMode === 'quick');
 
         if (data.logs) {
           updateLogs(data.logs);
@@ -1084,6 +1571,27 @@
           document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;color:#9ca3af;font-family:sans-serif;font-size:18px;">Мастер разблокировки остановлен. Вы можете закрыть эту вкладку.</div>';
         }
       });
+    }
+
+    if (modeBtnStandard) {
+      modeBtnStandard.addEventListener('click', () => setAppMode('standard'));
+    }
+    if (modeBtnQuick) {
+      modeBtnQuick.addEventListener('click', () => setAppMode('quick'));
+    }
+
+    if (btnHeadTest) {
+      btnHeadTest.addEventListener('click', runAdbTest);
+    }
+    if (btnDiagRun) {
+      btnDiagRun.addEventListener('click', runAdbTest);
+    }
+
+    if (btnStepQuick) {
+      btnStepQuick.addEventListener('click', startQuickUnlock);
+    }
+    if (btnQuickAct) {
+      btnQuickAct.addEventListener('click', startQuickUnlock);
     }
 
     btnStep1.addEventListener('click', async () => {
