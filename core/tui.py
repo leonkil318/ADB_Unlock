@@ -91,7 +91,6 @@ def print_banner():
 
     t1 = "GEELY ADB UNLOCK MASTER v2.1.4.5"
     t2 = "Flyme Auto / Ecarx Service Terminal • EX5 EM-i / X80"
-    t3 = "Clean • No keys • Permanent VHAL ADB"
 
     def center_line(text, color):
         v = visible_len(text)
@@ -102,7 +101,6 @@ def print_banner():
     print(top)
     print(center_line(t1, C_WHITE))
     print(center_line(t2, C_GRAY))
-    print(center_line(t3, C_GREEN))
     print(bot)
 
 
