@@ -312,13 +312,13 @@ def test_adb_connection():
         STATE.device_serial = None
         STATE.log("❌ Автомобиль не обнаружен на шине USB (список adb devices пуст).", "warning")
         STATE.log("💡 Совет:", "info")
-        STATE.log("   • Если вы уже открывали ADB и обновились у ОД (2.1.4.5+): проверьте кабель USB-A и включите зажигание автомобиля.", "info")
+        STATE.log("   • Если вы уже открывали ADB и обновились у ОД (2.1.4.5+): проверьте кабель USB-A и активность экрана ГУ.", "info")
         STATE.log("   • Если вы открываете ADB впервые: убедитесь, что перемычка установлена и запущен сценарий сброса настроек.", "info")
         res = {
             "ok": True,
             "connected": False,
             "state": "disconnected",
-            "message": "Устройство не обнаружено на USB. Проверьте кабель и зажигание.",
+            "message": "Устройство не обнаружено на USB. Проверьте кабель и активность экрана ГУ.",
             "recommendation": "not_connected"
         }
         STATE.last_test = res
@@ -437,7 +437,7 @@ def worker_catch_factory_reset():
 
         if "Set property" in combined_out:
             STATE.log("🎉 УСПЕХ! Автомобиль подтвердил фиксацию порта (Set property)! Постоянный ADB активирован.", "success")
-            STATE.set_status("success", "ADB зафиксирован! Выключите зажигание, снимите перемычку и снова включите зажигание.", 3)
+            STATE.set_status("success", "ADB зафиксирован! Снимите перемычку и подтвердите перезагрузку ГУ.", 3)
             return
 
         if "Must be root" in combined_out:

@@ -57,7 +57,7 @@ def run_full_wizard():
     print(f"\n{C_CYAN}{C_BOLD}🔌 СЦЕНАРИЙ: ПЕРВОНАЧАЛЬНАЯ РАЗБЛОКИРОВКА ADB{C_RESET}\n")
     print(f"{C_WHITE}ГОТОВНОСТЬ К ПЕРЕХВАТУ:{C_RESET}")
     print(" 1. Кабель USB-A ↔ USB-A соединяет ноутбук и штатный порт автомобиля.")
-    print(" 2. Перемычка установлена, зажигание включено (экран ГУ активен).")
+    print(" 2. Перемычка установлена, экран ГУ активен.")
     print(" 3. После подтверждения запустится цикл ожидания подключения.")
     print(" 4. Нажмите «Сброс до заводских настроек» (Factory Reset) в меню ГУ.\n")
     
@@ -75,11 +75,10 @@ def run_full_wizard():
     print_banner()
     print(f"\n{C_GREEN}{C_BOLD}✅ VHAL ЗАФИКСИРОВАН (Set property получен)!{C_RESET}\n")
     print(f"{C_WHITE}ДЕЙСТВИЯ С ПЕРЕМЫЧКОЙ:{C_RESET}")
-    print(" 1. Выключите зажигание автомобиля.")
-    print(f" 2. {C_YELLOW}Снимите перемычку.{C_RESET}")
-    print(" 3. Снова включите зажигание авто (кабель USB остаётся подключенным).\n")
+    print(f" 1. {C_YELLOW}Аккуратно снимите перемычку.{C_RESET}")
+    print(" 2. Кабель USB остаётся подключенным к ГУ.\n")
     
-    ans = safe_input(f"{C_CYAN}Перемычка снята? [Enter - Продолжить, 0 - Отмена] > {C_RESET}", default="0").strip()
+    ans = safe_input(f"{C_CYAN}Перемычка снята? [Enter - Перезагрузить ГУ и проверить ADB, 0 - Отмена] > {C_RESET}", default="0").strip()
     if ans == "0":
         return
     run_interactive_task(STATE, worker_reboot_and_verify, "Шаг 3: Перезагрузка ГУ и проверка постоянного ADB")
