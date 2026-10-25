@@ -401,8 +401,8 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
                 sys.stdout.write(f"\r{spinner_line}{padding}\r")
                 sys.stdout.flush()
 
-            # Periodic sonar radar pulse every ~1.8 seconds (18 ticks * 0.1s)
-            if idx > 0 and idx % 18 == 0:
+            # Periodic comfortable progress pulse every ~3 seconds (30 ticks * 0.1s)
+            if idx > 0 and idx % 30 == 0:
                 play_sound("radar")
 
             idx += 1
