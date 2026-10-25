@@ -1,3 +1,4 @@
+#!/system/bin/sh
 V=com.ecarx.xsfinstallverifier
 P=/product/build.prop
 K=ro.vendor.ecarx.app_verify

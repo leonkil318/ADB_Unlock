@@ -6,6 +6,9 @@ core/debug.log
 __pycache__/
 *.py[cod]
 *$py.class
+venv/
+.venv/
+env/
 
 # PyInstaller build artifacts
 core/build/
@@ -15,10 +18,28 @@ dist/
 releases/
 *.spec
 
-# OS & media
+# Security, keys and certificates
+*.pem
+*.key
+*.pk8
+*.x509.*
+*.cer
+*.crt
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS, archives & media
 .DS_Store
 Thumbs.db
 desktop.ini
 *.mp4
 *.mkv
 *.avi
+*.tmp
+*.bak
+*.zip
+*.tar*

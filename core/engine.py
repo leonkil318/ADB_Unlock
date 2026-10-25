@@ -10,9 +10,6 @@ import platform
 import subprocess
 import threading
 import time
-import urllib.request
-import zipfile
-import io
 
 # Base directories
 if getattr(sys, 'frozen', False):
@@ -49,27 +46,13 @@ class AppState:
         self.os_name = platform.system().lower()  # 'windows', 'darwin', 'linux'
         self.adb_path = None
         self.adb_ready = False
-        self.mode = "standard"  # 'standard' (full with jumper) or 'quick' (after dealer update)
-        self.step = 1  # 1: Preparation, 2: Factory Reset & VHAL, 3: Jumper removal & Reboot, 4: Unlock Parrot & Toggle, 5: Finished
-        self.status = "idle"  # idle, working, waiting_reset, success, error
+        self.status = "idle"  # idle, working, success, error
         self.status_message = "Готов к работе"
         self.device_serial = None
         self.device_state = "disconnected"
         self.last_test = None
-        self.log_callbacks = []
         self.logs = []
-        self.worker_thread = None
         self.stop_worker = False
-
-    def add_log_callback(self, cb):
-        with self.lock:
-            if cb not in self.log_callbacks:
-                self.log_callbacks.append(cb)
-
-    def remove_log_callback(self, cb):
-        with self.lock:
-            if cb in self.log_callbacks:
-                self.log_callbacks.remove(cb)
 
     def log(self, text, level="info"):
         timestamp = time.strftime("%H:%M:%S")
@@ -82,12 +65,10 @@ class AppState:
         }.get(level, "•")
         entry = f"[{timestamp}] {prefix} {text}"
         
-        cbs = []
         with self.lock:
             self.logs.append({"time": timestamp, "text": text, "level": level, "formatted": entry})
             if len(self.logs) > 500:
                 self.logs.pop(0)
-            cbs = list(self.log_callbacks)
 
         try:
             log_file = os.path.join(BASE_DIR, "debug.log")
@@ -96,36 +77,11 @@ class AppState:
         except Exception:
             pass
 
-        # Trigger listeners
-        for cb in cbs:
-            try:
-                cb(timestamp, level, text, entry)
-            except Exception:
-                pass
-
     def set_status(self, status, message, step=None):
         with self.lock:
             self.status = status
             self.status_message = message
-            if step is not None:
-                self.step = step
         self.log(message, level="info" if status != "error" else "error")
-
-    def to_dict(self):
-        with self.lock:
-            return {
-                "os": self.os_name,
-                "mode": self.mode,
-                "step": self.step,
-                "status": self.status,
-                "status_message": self.status_message,
-                "adb_ready": self.adb_ready,
-                "adb_path": self.adb_path,
-                "device_serial": self.device_serial,
-                "device_state": self.device_state,
-                "last_test": self.last_test,
-                "logs": self.logs[-50:]
-            }
 
 
 STATE = AppState()
@@ -206,6 +162,10 @@ def locate_or_download_adb():
     }
     url = urls.get(STATE.os_name, urls["windows"])
     try:
+        import urllib.request
+        import zipfile
+        import io
+
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = resp.read()
@@ -235,7 +195,7 @@ def locate_or_download_adb():
 
 
 def run_adb(args, timeout=30):
-    """Executes an adb command safely without opening popup windows."""
+    """Executes an adb command safely without opening popup windows and with robust UTF-8 encoding."""
     if not STATE.adb_path or not os.path.isfile(STATE.adb_path):
         locate_or_download_adb()
         if not STATE.adb_path:
@@ -248,7 +208,8 @@ def run_adb(args, timeout=30):
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout,
             creationflags=creationflags
         )
@@ -538,6 +499,10 @@ def worker_unlock_and_install():
 
     # Run loop
     for pass_num in range(1, 9):
+        if STATE.stop_worker:
+            STATE.log("⚠️ Операция прервана пользователем", "warning")
+            return
+
         STATE.log(f"⚙️ Выполнение процедур снятия защиты (проход {pass_num}/8)...", "cmd")
         code, out, _ = run_adb(["shell", "sh", "/data/local/tmp/gt-unlock.sh"], timeout=60)
         
@@ -559,11 +524,19 @@ def worker_unlock_and_install():
             STATE.log("🔄 Требуется промежуточная перезагрузка ГУ для применения настроек (около 1.5 - 2 минут)...", "info")
             run_adb(["reboot"], timeout=10)
             time.sleep(20)
+            reboot_start = time.time()
+            reboot_ok = False
             while not STATE.stop_worker:
+                if time.time() - reboot_start > 300:
+                    STATE.set_status("error", "Таймаут: ГУ не перезагрузилось за 5 минут. Проверьте кабель USB.", 4)
+                    return
                 c, b_out, _ = run_adb(["shell", "getprop", "sys.boot_completed"], timeout=5)
                 if c == 0 and b_out.strip() == "1":
+                    reboot_ok = True
                     break
                 time.sleep(3)
+            if not reboot_ok or STATE.stop_worker:
+                return
             run_adb(["root"], timeout=10)
             time.sleep(2)
             run_adb(["wait-for-device"], timeout=10)

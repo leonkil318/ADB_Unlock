@@ -23,8 +23,6 @@ C_YELLOW  = "\033[93;1m"
 C_RED     = "\033[91;1m"
 C_WHITE   = "\033[97;1m"
 C_GRAY    = "\033[90m"
-C_BG_BLUE = "\033[44;1m"
-C_BG_CYAN = "\033[46;1m"
 
 ANSI_REGEX = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
 

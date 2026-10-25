@@ -11,11 +11,15 @@ chmod +x "core/unlock-hu.sh" 2>/dev/null
 
 if [ -f "core/geely_unlock" ]; then
     chmod +x "core/geely_unlock"
-    ./core/geely_unlock
+    "./core/geely_unlock"
+    exit 0
+elif [ -f "core/GeelyUnlock-macOS" ]; then
+    chmod +x "core/GeelyUnlock-macOS"
+    "./core/GeelyUnlock-macOS"
     exit 0
 elif [ -f "core/geely_unlock_mac" ]; then
     chmod +x "core/geely_unlock_mac"
-    ./core/geely_unlock_mac
+    "./core/geely_unlock_mac"
     exit 0
 fi
 

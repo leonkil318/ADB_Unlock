@@ -79,7 +79,9 @@ def run_full_wizard():
     print(f" 2. {C_YELLOW}Снимите перемычку.{C_RESET}")
     print(" 3. Снова включите зажигание авто (кабель USB остаётся подключенным).\n")
     
-    safe_input(f"{C_CYAN}Перемычка снята? Нажмите Enter для перезагрузки ГУ и проверки ADB...{C_RESET}")
+    ans = safe_input(f"{C_CYAN}Перемычка снята? [Enter - Продолжить, 0 - Отмена] > {C_RESET}", default="0").strip()
+    if ans == "0":
+        return
     run_interactive_task(STATE, worker_reboot_and_verify, "Шаг 3: Перезагрузка ГУ и проверка постоянного ADB")
     if STATE.status != "success":
         return
