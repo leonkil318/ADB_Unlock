@@ -53,7 +53,7 @@ def humanize_adb_error(raw_err, context=""):
         title = "Автомобиль (ГУ) не обнаружен через USB"
         reason = "Служба ADB не обнаружила активного мультимедийного устройства на USB-портах компьютера."
         steps = [
-            "Проверьте надежность подключения кабеля USB-A к разъему ноутбука и сервисному порту ГУ.",
+            "Проверьте надежность подключения кабеля USB-A между ноутбуком и сервисным портом ГУ.",
             "Убедитесь, что экран мультимедиа автомобиля включен и находится в рабочем состоянии.",
             "Если отладка по ADB в ГУ настраивается впервые, используйте «Сценарий 2: Первоначальная разблокировка» с перемычкой."
         ]
@@ -442,12 +442,10 @@ def test_adb_connection():
         STATE.device_state = "disconnected"
         STATE.device_serial = None
         title, reason, steps = humanize_adb_error("no devices/emulators found")
-        STATE.log(f"❌ {title}: {reason}", "warning")
-        STATE.log("💡 Рекомендации по подключению:", "info")
-        for s in steps:
-            STATE.log(f"   • {s}", "info")
+        STATE.log("Автомобиль не обнаружен на шине USB (список adb devices пуст)", "warning")
+        STATE.set_error(title, reason, steps, raw="no devices/emulators found")
         res = {
-            "ok": True,
+            "ok": False,
             "connected": False,
             "state": "disconnected",
             "message": title,

@@ -49,9 +49,32 @@ def visible_len(s):
 
 
 def get_terminal_width():
-    """Returns dynamic terminal width between 60 and 105 characters."""
-    cols = shutil.get_terminal_size(fallback=(80, 24)).columns
-    return max(60, min(cols - 2, 105))
+    """Returns dynamic terminal width matching the actual console window."""
+    cols = 0
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            hOut = kernel32.CreateFileW("CONOUT$", 0x80000000 | 0x40000000, 3, None, 3, 0, None)
+            if hOut != -1:
+                class CONSOLE_SCREEN_BUFFER_INFO(ctypes.Structure):
+                    _fields_ = [
+                        ('dwSize_X', ctypes.c_short), ('dwSize_Y', ctypes.c_short),
+                        ('dwCursorPosition_X', ctypes.c_short), ('dwCursorPosition_Y', ctypes.c_short),
+                        ('wAttributes', ctypes.c_ushort),
+                        ('srWindow_Left', ctypes.c_short), ('srWindow_Top', ctypes.c_short),
+                        ('srWindow_Right', ctypes.c_short), ('srWindow_Bottom', ctypes.c_short),
+                        ('dwMaximumWindowSize_X', ctypes.c_short), ('dwMaximumWindowSize_Y', ctypes.c_short),
+                    ]
+                csbi = CONSOLE_SCREEN_BUFFER_INFO()
+                if kernel32.GetConsoleScreenBufferInfo(hOut, ctypes.byref(csbi)):
+                    cols = csbi.srWindow_Right - csbi.srWindow_Left + 1
+                kernel32.CloseHandle(hOut)
+        except Exception:
+            pass
+    if not cols:
+        cols = shutil.get_terminal_size(fallback=(100, 24)).columns
+    return max(65, min(cols - 2, 130))
 
 
 def pad_box_line(text, inner_width):
