@@ -36,9 +36,6 @@ def get_char_width(c):
     w = unicodedata.east_asian_width(c)
     if w in ('F', 'W'):
         return 2
-    code = ord(c)
-    if 0x1F300 <= code <= 0x1FAFF or 0x2600 <= code <= 0x27BF:
-        return 2
     return 1
 
 
@@ -159,22 +156,22 @@ def render_diagnostic_card(state):
     firmware = t.get("firmware") or ("2.1.4.5+" if connected else "-")
 
     if connected:
-        adb_badge = f"{C_GREEN}[ 🟢 АКТИВЕН ]{C_RESET}"
+        adb_badge = f"{C_GREEN}[ АКТИВЕН ]{C_RESET}"
     elif t.get("state") == "unauthorized":
-        adb_badge = f"{C_YELLOW}[ 🟡 ТРЕБУЕТ ДОПУСК ]{C_RESET}"
+        adb_badge = f"{C_YELLOW}[ ТРЕБУЕТ ДОПУСК ]{C_RESET}"
     else:
-        adb_badge = f"{C_RED}[ 🔴 НЕ ПОДКЛЮЧЕН ]{C_RESET}"
+        adb_badge = f"{C_RED}[ НЕ ПОДКЛЮЧЕН ]{C_RESET}"
 
     if connected:
         if t.get("parrot_locked"):
-            parrot_badge = f"{C_YELLOW}[ 🔒 БЛОКИРУЕТ ]{C_RESET}"
+            parrot_badge = f"{C_YELLOW}[ БЛОКИРУЕТ ]{C_RESET}"
         else:
-            parrot_badge = f"{C_GREEN}[ 🔓 ВЫКЛЮЧЕНА ]{C_RESET}"
+            parrot_badge = f"{C_GREEN}[ ВЫКЛЮЧЕНА ]{C_RESET}"
 
         if t.get("verifier_active"):
-            verifier_badge = f"{C_YELLOW}[ 🔒 АКТИВЕН ]{C_RESET}"
+            verifier_badge = f"{C_YELLOW}[ АКТИВЕН ]{C_RESET}"
         else:
-            verifier_badge = f"{C_GREEN}[ 🔓 ОТКЛЮЧЕН ]{C_RESET}"
+            verifier_badge = f"{C_GREEN}[ ОТКЛЮЧЕН ]{C_RESET}"
     else:
         parrot_badge = f"{C_GRAY}[ - ]{C_RESET}"
         verifier_badge = f"{C_GRAY}[ - ]{C_RESET}"
@@ -240,17 +237,17 @@ def render_menu(state):
         print(f"{C_CYAN}│{C_RESET} {p} {C_CYAN}│{C_RESET}")
 
     if connected and needs_unlock:
-        print_menu_item(f"{C_GREEN}{C_BOLD}[1] ⚡ Экспресс-снятие защиты (ОД 2.1.4.5+, перемычка НЕ требуется){C_RESET}")
+        print_menu_item(f"{C_GREEN}{C_BOLD}[1] Экспресс-снятие защиты (ОД 2.1.4.5+, перемычка НЕ требуется){C_RESET}")
     else:
-        print_menu_item(f"{C_WHITE}[1]{C_RESET} ⚡ Экспресс-снятие защиты (После обновления ОД 2.1.4.5+, если ADB уже был)")
+        print_menu_item(f"{C_WHITE}[1]{C_RESET} Экспресс-снятие защиты (После обновления ОД 2.1.4.5+, если ADB уже был)")
 
-    print_menu_item(f"{C_WHITE}[2]{C_RESET} 🔌 Первоначальная разблокировка (Фиксация ADB через Factory Reset)")
-    print_menu_item(f"{C_WHITE}[3]{C_RESET} 🔍 Проверить статус ГУ (Диагностика связи и состояния блокировок)")
-    print_menu_item(f"{C_WHITE}[4]{C_RESET} 🚀 Открыть веб-установщик GeelyTune (в браузере)")
-    print_menu_item(f"{C_WHITE}[5]{C_RESET} 🔄 Перезапустить службу ADB (Очистить зависшие процессы)")
-    sound_badge = f"{C_GREEN}[ 🔊 ВКЛ ]{C_RESET}" if is_sound_enabled() else f"{C_GRAY}[ 🔇 ВЫКЛ ]{C_RESET}"
-    print_menu_item(f"{C_WHITE}[6]{C_RESET} 🔊 Звуковые ретро-эффекты и сонар: {sound_badge}")
-    print_menu_item(f"{C_GRAY}[0] ❌ Выход{C_RESET}")
+    print_menu_item(f"{C_WHITE}[2]{C_RESET} Первоначальная разблокировка (Фиксация ADB через Factory Reset)")
+    print_menu_item(f"{C_WHITE}[3]{C_RESET} Проверить статус ГУ (Диагностика связи и состояния блокировок)")
+    print_menu_item(f"{C_WHITE}[4]{C_RESET} Открыть веб-установщик GeelyTune (в браузере)")
+    print_menu_item(f"{C_WHITE}[5]{C_RESET} Перезапустить службу ADB (Очистить зависшие процессы)")
+    sound_badge = f"{C_GREEN}[ ВКЛ ]{C_RESET}" if is_sound_enabled() else f"{C_GRAY}[ ВЫКЛ ]{C_RESET}"
+    print_menu_item(f"{C_WHITE}[6]{C_RESET} Звуковые ретро-эффекты и сонар: {sound_badge}")
+    print_menu_item(f"{C_GRAY}[0] Выход{C_RESET}")
 
     print(f"{C_CYAN}└{'─' * (W - 2)}┘{C_RESET}")
 
@@ -449,7 +446,7 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
     except KeyboardInterrupt:
         state.stop_worker = True
         play_sound("step")
-        print(f"\n\n{C_YELLOW}⚠️ Операция прервана пользователем.{C_RESET}")
+        print(f"\n\n{C_YELLOW}[!] Операция прервана пользователем.{C_RESET}")
 
     print()
     try:

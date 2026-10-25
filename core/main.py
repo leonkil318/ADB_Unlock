@@ -56,7 +56,7 @@ def run_full_wizard():
     """Runs the wizard for initial ADB unlock with factory reset."""
     clear_screen()
     print_banner()
-    print(f"\n{C_CYAN}{C_BOLD}🔌 СЦЕНАРИЙ: ПЕРВОНАЧАЛЬНАЯ РАЗБЛОКИРОВКА ADB{C_RESET}\n")
+    print(f"\n{C_CYAN}{C_BOLD}[*] СЦЕНАРИЙ: ПЕРВОНАЧАЛЬНАЯ РАЗБЛОКИРОВКА ADB{C_RESET}\n")
     print(f"{C_WHITE}ГОТОВНОСТЬ К ПЕРЕХВАТУ:{C_RESET}")
     print(" 1. Кабель USB-A ↔ USB-A соединяет ноутбук и штатный порт автомобиля.")
     print(" 2. Перемычка установлена, экран ГУ активен.")
@@ -75,7 +75,7 @@ def run_full_wizard():
     # Step 3: Remove jumper & reboot
     clear_screen()
     print_banner()
-    print(f"\n{C_GREEN}{C_BOLD}✅ VHAL ЗАФИКСИРОВАН (Set property получен)!{C_RESET}\n")
+    print(f"\n{C_GREEN}{C_BOLD}[OK] VHAL ЗАФИКСИРОВАН (Set property получен)!{C_RESET}\n")
     print(f"{C_WHITE}ДЕЙСТВИЯ С ПЕРЕМЫЧКОЙ:{C_RESET}")
     print(f" 1. {C_YELLOW}Аккуратно снимите перемычку.{C_RESET}")
     print(" 2. Кабель USB остаётся подключенным к ГУ.\n")
@@ -97,7 +97,7 @@ def run_quick_unlock():
     """Runs quick unlock for cars with existing ADB after dealer 2.1.4.5+ update."""
     clear_screen()
     print_banner()
-    print(f"\n{C_CYAN}{C_BOLD}⚡ СЦЕНАРИЙ: ЭКСПРЕСС-СНЯТИЕ ЗАЩИТЫ (ОД 2.1.4.5+){C_RESET}\n")
+    print(f"\n{C_CYAN}{C_BOLD}[*] СЦЕНАРИЙ: ЭКСПРЕСС-СНЯТИЕ ЗАЩИТЫ (ОД 2.1.4.5+){C_RESET}\n")
     print(f"{C_GREEN}Перемычка НЕ требуется!{C_RESET}")
     print("Используется, если постоянный ADB в ГУ уже был активирован ранее.")
     print("Скрипт отключит блокировку Parrot в build.prop, выключит AutoInstallVerifier")
@@ -117,7 +117,7 @@ def post_unlock_prompt():
     """Prompt after successful unlock to open GeelyTune."""
     clear_screen()
     print_banner()
-    print(f"\n{C_GREEN}{C_BOLD}🎉 ПОЗДРАВЛЯЕМ! РАЗБЛОКИРОВКА ПОЛНОСТЬЮ ЗАВЕРШЕНА!{C_RESET}\n")
+    print(f"\n{C_GREEN}{C_BOLD}[OK] ПОЗДРАВЛЯЕМ! РАЗБЛОКИРОВКА ПОЛНОСТЬЮ ЗАВЕРШЕНА!{C_RESET}\n")
     print(" • Постоянный ADB: активен")
     print(" • Проверка Parrot certificates: отключена (установка сторонних APK разрешена)")
     print(" • Проверяющий AutoInstallVerifier: отключен")
