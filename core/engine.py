@@ -371,11 +371,11 @@ def test_adb_connection():
 
     # 6. Check toggle app
     _, toggle_out, _ = run_adb(["shell", "pm", "list", "packages"], timeout=5)
-    toggle_installed = any(pkg in (toggle_out or "") for pkg in ["com.geely.adbtoggle", "adbtoggle", "geelyadbtoggle"])
+    toggle_installed = any(pkg in (toggle_out or "") for pkg in ["com.yahooeu2k.ex5.adbtoggle", "com.geely.adbtoggle", "adbtoggle", "geelyadbtoggle"])
     if toggle_installed:
         STATE.log("📱 Приложение переключателя ADB-Toggle: уже установлено на ГУ", "info")
     else:
-        STATE.log("📱 Приложение переключателя ADB-Toggle: не найдено (будет установлено)", "info")
+        STATE.log("📱 Приложение переключателя ADB-Toggle: не найдено (будет установлено при необходимости)", "info")
 
     needs_unlock = parrot_locked or verifier_active or not toggle_installed
     if needs_unlock:
@@ -544,8 +544,13 @@ def worker_unlock_and_install():
             STATE.set_status("error", "Скрипт разблокировки завершился с непредвиденным кодом.", 4)
             return
 
-    # Install Toggle APK
-    if os.path.isfile(apk_file):
+    # Install Toggle APK if not already installed
+    _, toggle_check, _ = run_adb(["shell", "pm", "list", "packages"], timeout=5)
+    already_installed = any(pkg in (toggle_check or "") for pkg in ["com.yahooeu2k.ex5.adbtoggle", "com.geely.adbtoggle", "adbtoggle", "geelyadbtoggle"])
+
+    if already_installed:
+        STATE.log("📱 Переключатель Geely-ADB-Toggle уже установлен на ГУ. Пропускаем повторную установку.", "success")
+    elif os.path.isfile(apk_file):
         STATE.log("📱 Установка приложения Geely-ADB-Toggle на экран мультимедиа...", "cmd")
         STATE.log("💡 Для чего оно нужно: этот удобный тумблер в меню авто позволит вам в один клик переключать USB-разъем между обычной флешкой с музыкой и кабелем отладки.", "info")
         code, out, err = run_adb(["install", "-r", "--user", "10", apk_file], timeout=60)

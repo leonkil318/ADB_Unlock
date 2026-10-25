@@ -100,7 +100,7 @@ def run_quick_unlock():
     print(f"{C_GREEN}Перемычка НЕ требуется!{C_RESET}")
     print("Используется, если постоянный ADB в ГУ уже был активирован ранее.")
     print("Скрипт отключит блокировку Parrot в build.prop, выключит AutoInstallVerifier")
-    print("и установит переключатель Geely-ADB-Toggle на экран мультимедиа.\n")
+    print("и (при необходимости) установит переключатель Geely-ADB-Toggle.\n")
 
     ans = safe_input(f"{C_CYAN}Запустить процедуру снятия блокировок? [Enter - Да, 0 - Назад] > {C_RESET}", default="0").strip()
     if ans == "0":
@@ -120,7 +120,7 @@ def post_unlock_prompt():
     print(" • Постоянный ADB: активен")
     print(" • Проверка Parrot certificates: отключена (установка сторонних APK разрешена)")
     print(" • Проверяющий AutoInstallVerifier: отключен")
-    print(" • Приложение Geely-ADB-Toggle: установлено на экран автомобиля\n")
+    print(" • Приложение Geely-ADB-Toggle: готово к работе на экране авто\n")
     
     ans = safe_input(f"{C_CYAN}Открыть официальный веб-установщик GeelyTune в браузере? [Y/n] > {C_RESET}", default="n").strip().lower()
     if ans != "n":
