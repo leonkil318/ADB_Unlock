@@ -12,6 +12,7 @@ import re
 import shutil
 import textwrap
 import threading
+import unicodedata
 
 # Terminal color and style definitions
 C_RESET   = "\033[0m"
@@ -27,24 +28,44 @@ C_GRAY    = "\033[90m"
 ANSI_REGEX = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
 
 
+def get_char_width(c):
+    """Returns visual terminal cell width of a character (0, 1, or 2)."""
+    if c in ('\ufe0e', '\ufe0f') or unicodedata.combining(c):
+        return 0
+    w = unicodedata.east_asian_width(c)
+    if w in ('F', 'W'):
+        return 2
+    code = ord(c)
+    if 0x1F300 <= code <= 0x1FAFF or 0x2600 <= code <= 0x27BF:
+        return 2
+    return 1
+
+
 def visible_len(s):
-    """Calculates visible character length of a string ignoring ANSI color codes."""
-    return len(ANSI_REGEX.sub('', s))
+    """Calculates visible display cell width of a string ignoring ANSI color codes."""
+    clean = ANSI_REGEX.sub('', s)
+    return sum(get_char_width(c) for c in clean)
 
 
 def get_terminal_width():
-    """Returns dynamic terminal width between 60 and 110 characters."""
+    """Returns dynamic terminal width between 60 and 105 characters."""
     cols = shutil.get_terminal_size(fallback=(80, 24)).columns
     return max(60, min(cols - 2, 105))
 
 
 def pad_box_line(text, inner_width):
-    """Pads text with spaces so it precisely fills the inner box width."""
+    """Pads text with spaces so it precisely fills the inner box width in display cells."""
     vlen = visible_len(text)
     if vlen > inner_width:
-        # Strip excess visible characters if overflow
-        clean = ANSI_REGEX.sub('', text)
-        return clean[:inner_width]
+        clean = ""
+        cur = 0
+        for ch in ANSI_REGEX.sub('', text):
+            cw = get_char_width(ch)
+            if cur + cw > inner_width:
+                break
+            clean += ch
+            cur += cw
+        return clean + (" " * (inner_width - cur))
     return text + (" " * (inner_width - vlen))
 
 
@@ -263,25 +284,23 @@ def print_error_card(err):
 
     # Title
     title = err.get("title", "Сбой выполнения операции")
-    print_line(f"{C_RED}{C_BOLD}❌ {title}{C_RESET}")
+    print_line(f"{C_RED}{C_BOLD}[!] СБОЙ: {title}{C_RESET}")
     print(f"{C_RED}├{'─' * (W - 2)}┤{C_RESET}")
 
     # Reason
     reason = err.get("reason", "")
     if reason:
-        print_line(f"{C_YELLOW}{C_BOLD}ℹ️ Суть проблемы:{C_RESET}")
-        for r_line in textwrap.wrap(reason, width=inner - 2, subsequent_indent="  "):
+        print_line(f"{C_YELLOW}{C_BOLD}• Суть проблемы:{C_RESET}")
+        for r_line in textwrap.wrap(reason, width=inner - 4):
             print_line(f"  {r_line}")
         print_empty()
 
     # Steps
     steps = err.get("steps", [])
     if steps:
-        print_line(f"{C_CYAN}{C_BOLD}🛠️ Что необходимо сделать:{C_RESET}")
+        print_line(f"{C_CYAN}{C_BOLD}• Рекомендуемые действия:{C_RESET}")
         for i, step in enumerate(steps, 1):
-            prefix = f"{i}. "
-            indent = " " * len(prefix)
-            wrapped = textwrap.wrap(f"{prefix}{step}", width=inner - 2, subsequent_indent=f"  {indent}")
+            wrapped = textwrap.wrap(f"{i}. {step}", width=inner - 4, subsequent_indent="   ")
             for s_line in wrapped:
                 print_line(f"  {s_line}")
         print_empty()
@@ -289,10 +308,10 @@ def print_error_card(err):
     # Technical ADB details (if available and different from title)
     raw = err.get("raw", "")
     if raw and raw.strip() != title.strip():
-        print_line(f"{C_GRAY}{C_BOLD}🔍 Исходный код ошибки системы (ADB):{C_RESET}")
+        print_line(f"{C_GRAY}{C_BOLD}• Исходный код ошибки системы (ADB):{C_RESET}")
         clean_raw = ANSI_REGEX.sub('', str(raw)).strip()
         for raw_line in clean_raw.splitlines()[:3]:
-            for w_r in textwrap.wrap(raw_line, width=inner - 2, subsequent_indent="  "):
+            for w_r in textwrap.wrap(raw_line, width=inner - 4):
                 print_line(f"  {C_GRAY}{w_r}{C_RESET}")
 
     print(f"{C_RED}└{'─' * (W - 2)}┘{C_RESET}")
@@ -304,7 +323,7 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
     print_banner()
     W = get_terminal_width()
 
-    print(f"\n{C_CYAN}{C_BOLD}⚙️ {title.upper()}{C_RESET}")
+    print(f"\n{C_CYAN}{C_BOLD}[*] {title.upper()}{C_RESET}")
     print(f"{C_GRAY}Нажмите Ctrl+C для прерывания в случае необходимости.{C_RESET}\n")
 
     state.stop_worker = False
@@ -321,7 +340,7 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
     t = threading.Thread(target=runner, daemon=True)
     t.start()
 
-    spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    spinner_frames = ["-", "\\", "|", "/"]
     idx = 0
     last_log_count = len(state.logs)
 
@@ -330,6 +349,10 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
             # Check for new logs
             current_len = len(state.logs)
             if current_len > last_log_count:
+                # Clear active spinner line before printing logs
+                if sys.stdout.isatty():
+                    sys.stdout.write("\r" + (" " * (W + 2)) + "\r")
+                    sys.stdout.flush()
                 for entry in state.logs[last_log_count:current_len]:
                     lvl = entry.get("level", "info")
                     col = {
@@ -342,16 +365,24 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
 
                     raw_text = entry.get('formatted', entry.get('text', ''))
                     clean_text = ANSI_REGEX.sub('', raw_text)
-                    for wrapped_line in textwrap.wrap(clean_text, width=W, subsequent_indent="   "):
+                    for wrapped_line in textwrap.wrap(clean_text, width=max(40, W - 4), subsequent_indent="   "):
                         print(f" {col}{wrapped_line}{C_RESET}")
                 last_log_count = current_len
 
-            frame = spinner_frames[idx % len(spinner_frames)]
-            status_text = state.status_message[:W - 10]
-            sys.stdout.write(f"\r {C_CYAN}{frame}{C_RESET} {C_GRAY}{status_text}{C_RESET}   ")
-            sys.stdout.flush()
+            if sys.stdout.isatty():
+                frame = spinner_frames[idx % len(spinner_frames)]
+                status_text = state.status_message[:max(10, W - 14)]
+                spinner_line = f" {C_CYAN}[{frame}]{C_RESET} {C_GRAY}{status_text}{C_RESET}"
+                padding = " " * max(0, W - 2 - visible_len(spinner_line))
+                sys.stdout.write(f"\r{spinner_line}{padding}\r")
+                sys.stdout.flush()
             idx += 1
             time.sleep(0.1)
+
+        # Clear spinner line completely
+        if sys.stdout.isatty():
+            sys.stdout.write("\r" + (" " * (W + 2)) + "\r")
+            sys.stdout.flush()
 
         # Print remaining logs
         current_len = len(state.logs)
@@ -368,21 +399,18 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
 
                 raw_text = entry.get('formatted', entry.get('text', ''))
                 clean_text = ANSI_REGEX.sub('', raw_text)
-                for wrapped_line in textwrap.wrap(clean_text, width=W, subsequent_indent="   "):
+                for wrapped_line in textwrap.wrap(clean_text, width=max(40, W - 4), subsequent_indent="   "):
                     print(f" {col}{wrapped_line}{C_RESET}")
 
-        sys.stdout.write("\r" + (" " * (W + 2)) + "\r")
-        sys.stdout.flush()
-
         if state.status == "success":
-            print(f"\n{C_GREEN}{C_BOLD}✅ ОПЕРАЦИЯ УСПЕШНО ЗАВЕРШЕНА!{C_RESET}")
+            print(f"\n{C_GREEN}{C_BOLD}[OK] ОПЕРАЦИЯ УСПЕШНО ЗАВЕРШЕНА!{C_RESET}")
         elif state.status == "error":
             err = getattr(state, "last_error_details", None)
             if err:
                 print_error_card(err)
             else:
                 title = state.status_message
-                print(f"\n{C_RED}{C_BOLD}❌ ПРОИЗОШЛА ОШИБКА: {title}{C_RESET}")
+                print(f"\n{C_RED}{C_BOLD}[!] ПРОИЗОШЛА ОШИБКА: {title}{C_RESET}")
 
     except KeyboardInterrupt:
         state.stop_worker = True

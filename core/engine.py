@@ -157,16 +157,23 @@ class AppState:
     def log(self, text, level="info"):
         timestamp = time.strftime("%H:%M:%S")
         prefix = {
-            "info": "ℹ️",
-            "success": "✅",
-            "warning": "⚠️",
-            "error": "❌",
-            "cmd": "⚡"
+            "info": "[i]",
+            "success": "[OK]",
+            "warning": "[!]",
+            "error": "[X]",
+            "cmd": "[*]"
         }.get(level, "•")
-        entry = f"[{timestamp}] {prefix} {text}"
+        
+        # Strip any legacy leading emojis so terminal fonts never show broken ?? boxes
+        clean_text = text.strip()
+        for em in ["ℹ️", "✅", "⚠️", "❌", "⚡", "🔍", "🔑", "📂", "💡", "⚙️", "🔄", "📱", "🎉"]:
+            if clean_text.startswith(em):
+                clean_text = clean_text[len(em):].strip()
+
+        entry = f"[{timestamp}] {prefix} {clean_text}"
         
         with self.lock:
-            self.logs.append({"time": timestamp, "text": text, "level": level, "formatted": entry})
+            self.logs.append({"time": timestamp, "text": clean_text, "level": level, "formatted": entry})
             if len(self.logs) > 500:
                 self.logs.pop(0)
 
@@ -188,7 +195,7 @@ class AppState:
             self.status = "error"
             self.status_message = title
             self.last_error_details = details
-        self.log(f"{title}" + (f": {reason}" if reason else ""), level="error")
+        self.log(title, level="error")
 
     def set_status(self, status, message, step=None):
         with self.lock:
