@@ -10,6 +10,7 @@ import platform
 import subprocess
 import threading
 import time
+from sound import play_sound
 
 # Base directories
 if getattr(sys, 'frozen', False):
@@ -569,6 +570,7 @@ def worker_catch_factory_reset():
         STATE.log(f"Ответ системы автомобиля: {combined_out}")
 
         if "Set property" in combined_out:
+            play_sound("catch")
             STATE.log("🎉 УСПЕХ! Автомобиль подтвердил фиксацию порта (Set property)! Постоянный ADB активирован.", "success")
             STATE.set_status("success", "ADB зафиксирован! Снимите перемычку и подтвердите перезагрузку ГУ.", 3)
             return
@@ -670,6 +672,7 @@ def worker_unlock_and_install():
             STATE.log("⚠️ Операция прервана пользователем", "warning")
             return
 
+        play_sound("step")
         STATE.log(f"⚙️ Выполнение процедур снятия защиты (проход {pass_num}/8)...", "cmd")
         code, out, _ = run_adb(["shell", "sh", "/data/local/tmp/gt-unlock.sh"], timeout=60)
         

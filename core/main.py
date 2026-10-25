@@ -42,6 +42,8 @@ from tui import (
     C_GRAY
 )
 
+from sound import toggle_sound
+
 
 def safe_input(prompt, default=""):
     try:
@@ -148,7 +150,7 @@ def main():
         render_menu(STATE)
         render_recent_logs(STATE, count=4)
 
-        choice = safe_input(f"\n{C_CYAN}{C_BOLD}Выберите пункт меню [0-5] > {C_RESET}", default="0").strip()
+        choice = safe_input(f"\n{C_CYAN}{C_BOLD}Выберите пункт меню [0-6, S - Звук] > {C_RESET}", default="0").strip()
 
         if choice == "1":
             run_quick_unlock()
@@ -162,6 +164,10 @@ def main():
         elif choice == "5":
             run_interactive_task(STATE, kill_adb_processes, "Перезапуск службы ADB")
             test_adb_connection()
+        elif choice.lower() in ["6", "s", "ы"]:
+            enabled = toggle_sound()
+            status_str = "ВКЛЮЧЕНЫ" if enabled else "ВЫКЛЮЧЕНЫ"
+            STATE.log(f"Звуковые ретро-эффекты: {status_str}", "info")
         elif choice in ["0", "q", "exit", "quit"]:
             print(f"\n{C_GREEN}Завершение работы. Удачи на дорогах!{C_RESET}")
             time.sleep(0.5)

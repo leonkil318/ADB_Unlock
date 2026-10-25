@@ -13,6 +13,7 @@ import shutil
 import textwrap
 import threading
 import unicodedata
+from sound import play_sound, is_sound_enabled
 
 # Terminal color and style definitions
 C_RESET   = "\033[0m"
@@ -224,6 +225,8 @@ def render_menu(state):
     print_menu_item(f"{C_WHITE}[3]{C_RESET} 🔍 Проверить статус ГУ (Диагностика связи и состояния блокировок)")
     print_menu_item(f"{C_WHITE}[4]{C_RESET} 🚀 Открыть веб-установщик GeelyTune (в браузере)")
     print_menu_item(f"{C_WHITE}[5]{C_RESET} 🔄 Перезапустить службу ADB (Очистить зависшие процессы)")
+    sound_badge = f"{C_GREEN}[ 🔊 ВКЛ ]{C_RESET}" if is_sound_enabled() else f"{C_GRAY}[ 🔇 ВЫКЛ ]{C_RESET}"
+    print_menu_item(f"{C_WHITE}[6]{C_RESET} 🔊 Звуковые ретро-эффекты и сонар: {sound_badge}")
     print_menu_item(f"{C_GRAY}[0] ❌ Выход{C_RESET}")
 
     print(f"{C_CYAN}└{'─' * (W - 2)}┘{C_RESET}")
@@ -328,6 +331,7 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
 
     state.stop_worker = False
     worker_finished = threading.Event()
+    play_sound("step")
 
     def runner():
         try:
@@ -376,6 +380,11 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
                 padding = " " * max(0, W - 2 - visible_len(spinner_line))
                 sys.stdout.write(f"\r{spinner_line}{padding}\r")
                 sys.stdout.flush()
+
+            # Periodic sonar radar pulse every ~1.8 seconds (18 ticks * 0.1s)
+            if idx > 0 and idx % 18 == 0:
+                play_sound("radar")
+
             idx += 1
             time.sleep(0.1)
 
@@ -403,8 +412,10 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
                     print(f" {col}{wrapped_line}{C_RESET}")
 
         if state.status == "success":
+            play_sound("success")
             print(f"\n{C_GREEN}{C_BOLD}[OK] ОПЕРАЦИЯ УСПЕШНО ЗАВЕРШЕНА!{C_RESET}")
         elif state.status == "error":
+            play_sound("error")
             err = getattr(state, "last_error_details", None)
             if err:
                 print_error_card(err)
@@ -414,6 +425,7 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
 
     except KeyboardInterrupt:
         state.stop_worker = True
+        play_sound("step")
         print(f"\n\n{C_YELLOW}⚠️ Операция прервана пользователем.{C_RESET}")
 
     print()
