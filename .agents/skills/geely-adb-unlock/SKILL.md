@@ -3,7 +3,7 @@ name: geely-adb-unlock
 description: >-
   Expert guide and runbook for maintaining, troubleshooting, and extending the Geely ADB Unlock Master
   application. Use this skill whenever working on Geely multimedia head unit (HU) unlock workflows,
-  modifying core/server.py, editing the web UI in core/web/index.html, building launchers, or debugging ADB and VHAL connections.
+  modifying core/engine.py, editing the native TUI in core/tui.py, building launchers, or debugging ADB and VHAL connections.
 ---
 
 # Geely ADB Unlock Master — База знаний и руководство разработчика
@@ -93,7 +93,7 @@ Remove-Item -Recurse -Force 'd:\ADB_Unlock\core\build', 'd:\ADB_Unlock\core\geel
    ```
 2. **Проверка эмуляции macOS в Python:**
    ```cmd
-   python -c "import platform; platform.system = lambda: 'Darwin'; exec(open('d:/ADB_Unlock/core/server.py', encoding='utf-8').read())"
+   python -c "import platform; platform.system = lambda: 'Darwin'; exec(open('d:/ADB_Unlock/core/main.py', encoding='utf-8').read())"
    ```
 
 ---
@@ -108,5 +108,6 @@ Remove-Item -Recurse -Force 'd:\ADB_Unlock\core\build', 'd:\ADB_Unlock\core\geel
 * **Причина:** ГУ загрузилось слишком быстро или сброс был начат до запуска скрипта.
 * **Решение:** Повторить сброс до заводских настроек на экране ГУ. Движок находится в бесконечном цикле опроса и автоматически перехватит следующую попытку.
 
-### Проблема: Порт 8765 занят
-* **Решение:** Сервер автоматически проверяет порты от 8765 до 8774. Если процесс завис, нажать кнопку «Очистить ADB» в шапке или завершить процесс через диспетчер задач.
+### Проблема: Зависший процесс ADB в системе
+* **Решение:** Выберите пункт 6 в главном меню приложения («Перезапуск службы ADB») или выполните в терминале `taskkill /F /IM adb.exe` (Windows) / `killall -9 adb` (macOS/Linux).
+

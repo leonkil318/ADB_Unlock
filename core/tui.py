@@ -12,7 +12,6 @@ import re
 import shutil
 import textwrap
 import threading
-import webbrowser
 
 # Terminal color and style definitions
 C_RESET   = "\033[0m"
