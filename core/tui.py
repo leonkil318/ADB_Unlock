@@ -245,6 +245,59 @@ def render_recent_logs(state, count=5):
     print(f"{C_CYAN}└{'─' * (W - 2)}┘{C_RESET}")
 
 
+def print_error_card(err):
+    """Renders a structured, clear diagnostic error card with actionable advice."""
+    W = get_terminal_width()
+    inner = W - 4
+
+    title_str = "┌─ ДИАГНОСТИКА И ПРИЧИНА СБОЯ "
+    dash_count = max(2, W - visible_len(title_str) - 1)
+    print(f"\n{C_RED}{title_str}{'─' * dash_count}┐{C_RESET}")
+
+    def print_line(styled_text):
+        p = pad_box_line(styled_text, inner)
+        print(f"{C_RED}│{C_RESET} {p} {C_RED}│{C_RESET}")
+
+    def print_empty():
+        print(f"{C_RED}│{C_RESET} {' ' * inner} {C_RED}│{C_RESET}")
+
+    # Title
+    title = err.get("title", "Сбой выполнения операции")
+    print_line(f"{C_RED}{C_BOLD}❌ {title}{C_RESET}")
+    print(f"{C_RED}├{'─' * (W - 2)}┤{C_RESET}")
+
+    # Reason
+    reason = err.get("reason", "")
+    if reason:
+        print_line(f"{C_YELLOW}{C_BOLD}ℹ️ Суть проблемы:{C_RESET}")
+        for r_line in textwrap.wrap(reason, width=inner - 2, subsequent_indent="  "):
+            print_line(f"  {r_line}")
+        print_empty()
+
+    # Steps
+    steps = err.get("steps", [])
+    if steps:
+        print_line(f"{C_CYAN}{C_BOLD}🛠️ Что необходимо сделать:{C_RESET}")
+        for i, step in enumerate(steps, 1):
+            prefix = f"{i}. "
+            indent = " " * len(prefix)
+            wrapped = textwrap.wrap(f"{prefix}{step}", width=inner - 2, subsequent_indent=f"  {indent}")
+            for s_line in wrapped:
+                print_line(f"  {s_line}")
+        print_empty()
+
+    # Technical ADB details (if available and different from title)
+    raw = err.get("raw", "")
+    if raw and raw.strip() != title.strip():
+        print_line(f"{C_GRAY}{C_BOLD}🔍 Исходный код ошибки системы (ADB):{C_RESET}")
+        clean_raw = ANSI_REGEX.sub('', str(raw)).strip()
+        for raw_line in clean_raw.splitlines()[:3]:
+            for w_r in textwrap.wrap(raw_line, width=inner - 2, subsequent_indent="  "):
+                print_line(f"  {C_GRAY}{w_r}{C_RESET}")
+
+    print(f"{C_RED}└{'─' * (W - 2)}┘{C_RESET}")
+
+
 def run_interactive_task(state, task_fn, title="Выполнение операции"):
     """Runs a background task while streaming live logs and an animated spinner adaptively."""
     clear_screen()
@@ -324,7 +377,12 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
         if state.status == "success":
             print(f"\n{C_GREEN}{C_BOLD}✅ ОПЕРАЦИЯ УСПЕШНО ЗАВЕРШЕНА!{C_RESET}")
         elif state.status == "error":
-            print(f"\n{C_RED}{C_BOLD}❌ ПРОИЗОШЛА ОШИБКА: {state.status_message}{C_RESET}")
+            err = getattr(state, "last_error_details", None)
+            if err:
+                print_error_card(err)
+            else:
+                title = state.status_message
+                print(f"\n{C_RED}{C_BOLD}❌ ПРОИЗОШЛА ОШИБКА: {title}{C_RESET}")
 
     except KeyboardInterrupt:
         state.stop_worker = True

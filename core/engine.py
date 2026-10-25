@@ -40,6 +40,105 @@ def get_resource_path(relative_path):
     return base_path
 
 
+def humanize_adb_error(raw_err, context=""):
+    """
+    Translates raw low-level ADB errors, OS socket errors, and Android status messages
+    into clear, respectful, and actionable diagnostic explanations with step-by-step guidance.
+    """
+    raw_str = str(raw_err or "").strip()
+    raw_lower = raw_str.lower()
+
+    if any(k in raw_lower for k in ["no devices/emulators found", "device not found", "device offline"]):
+        title = "Автомобиль (ГУ) не обнаружен через USB"
+        reason = "Служба ADB не обнаружила активного мультимедийного устройства на USB-портах компьютера."
+        steps = [
+            "Проверьте надежность подключения кабеля USB-A к разъему ноутбука и сервисному порту ГУ.",
+            "Убедитесь, что экран мультимедиа автомобиля включен и находится в рабочем состоянии.",
+            "Если отладка по ADB в ГУ настраивается впервые, используйте «Сценарий 2: Первоначальная разблокировка» с перемычкой."
+        ]
+        return title, reason, steps
+
+    if "unauthorized" in raw_lower:
+        title = "Требуется подтвердить доступ на экране ГУ"
+        reason = "Головное устройство ожидает подтверждения ключа безопасности отладки по USB."
+        steps = [
+            "Посмотрите на центральный экран мультимедиа автомобиля.",
+            "Во всплывающем окне «Разрешить отладку по USB?» установите флажок «Всегда разрешать с этого компьютера» и нажмите «ОК»."
+        ]
+        return title, reason, steps
+
+    if "more than one device" in raw_lower:
+        title = "Обнаружено несколько подключенных Android-устройств"
+        reason = "К компьютеру подключено несколько устройств в режиме ADB (смартфон, планшет или эмулятор)."
+        steps = [
+            "Отключите от ноутбука любые посторонние смартфоны и внешние гаджеты.",
+            "Оставьте подключенным только USB-кабель, идущий к автомобилю."
+        ]
+        return title, reason, steps
+
+    if any(k in raw_lower for k in ["must be root", "adbd cannot run as root", "not in root mode", "uid is not 0"]):
+        title = "Отсутствуют системные root-права на ГУ"
+        reason = "Команда требует привилегий суперпользователя, но служба adbd запущена в ограниченном пользовательском режиме."
+        steps = [
+            "При первоначальной разблокировке убедитесь, что перемычка установлена и сброс настроек запущен во время перехвата.",
+            "При экспресс-снятии убедитесь, что в ГУ ранее был активирован постоянный режим ADB (VHAL)."
+        ]
+        return title, reason, steps
+
+    if any(k in raw_lower for k in ["read-only file system", "remount failed"]):
+        title = "Системные разделы ГУ заблокированы для записи"
+        reason = "Разделы /system и /product защищены от изменений операционной системой Android."
+        steps = [
+            "Убедитесь, что получен root-доступ к ГУ (adb root).",
+            "Попробуйте запустить операцию повторно: программа выполнит перемонтирование файловой системы (remount)."
+        ]
+        return title, reason, steps
+
+    if any(k in raw_lower for k in ["install_parse_failed_no_certificates", "install_failed_no_certificates"]):
+        title = "Установка заблокирована защитой сертификатов Parrot"
+        reason = "Прошивка Geely отклоняет установку приложений без заводской цифровой подписи Parrot."
+        steps = [
+            "Запустите «Сценарий 1: Экспресс-снятие защиты», чтобы отключить параметр ro.vendor.ecarx.app_verify.",
+            "Дождитесь штатной перезагрузки ГУ для применения системных изменений."
+        ]
+        return title, reason, steps
+
+    if any(k in raw_lower for k in ["xsfinstallverifier", "autoinstallverifier", "install_failed_verification"]):
+        title = "Установка заблокирована верификатором Geely"
+        reason = "Системная служба com.ecarx.xsfinstallverifier отклоняет установку сторонних APK-пакетов."
+        steps = [
+            "Выполните процедуру снятия защиты: программа принудительно отключит службу верификатора."
+        ]
+        return title, reason, steps
+
+    if any(k in raw_lower for k in ["таймаут", "timeoutexpired", "timed out"]):
+        title = "Превышено время ожидания ответа от ГУ"
+        reason = "Головное устройство не ответило на системный запрос в течение установленного таймаута."
+        steps = [
+            "Проверьте надежность кабеля USB — возможно, отошел контакт при вибрации.",
+            "Убедитесь, что экран мультимедиа не завис (при необходимости перезагрузите экран удержанием регулятора громкости)."
+        ]
+        return title, reason, steps
+
+    if any(k in raw_lower for k in ["cannot connect to daemon", "connection refused", "failed to start daemon"]):
+        title = "Сбой локальной службы ADB на компьютере"
+        reason = "Сервер ADB не смог привязаться к порту 5037 на вашем компьютере (порт занят сторонним процессом)."
+        steps = [
+            "Закройте сторонние утилиты синхронизации смартфонов или эмуляторы Android.",
+            "В главном меню выберите пункт «[5] Перезапустить службу ADB» для автоматической очистки процессов."
+        ]
+        return title, reason, steps
+
+    # Fallback with context
+    title = context or "Сбой выполнения операции"
+    reason = "Система ГУ вернула технический код ошибки при выполнении команды."
+    steps = [
+        "Проверьте надежность USB-кабеля и активность экрана мультимедиа.",
+        "Выполните проверку в меню: «[3] Проверить статус ГУ (Диагностика связи)»."
+    ]
+    return title, reason, steps
+
+
 class AppState:
     def __init__(self):
         self.lock = threading.Lock()
@@ -48,6 +147,7 @@ class AppState:
         self.adb_ready = False
         self.status = "idle"  # idle, working, success, error
         self.status_message = "Готов к работе"
+        self.last_error_details = None
         self.device_serial = None
         self.device_state = "disconnected"
         self.last_test = None
@@ -77,10 +177,33 @@ class AppState:
         except Exception:
             pass
 
+    def set_error(self, title, reason="", steps=None, raw=""):
+        details = {
+            "title": title,
+            "reason": reason,
+            "steps": steps or [],
+            "raw": str(raw).strip() if raw else ""
+        }
+        with self.lock:
+            self.status = "error"
+            self.status_message = title
+            self.last_error_details = details
+        self.log(f"{title}" + (f": {reason}" if reason else ""), level="error")
+
     def set_status(self, status, message, step=None):
         with self.lock:
             self.status = status
             self.status_message = message
+            if status != "error":
+                self.last_error_details = None
+            elif not self.last_error_details:
+                title, reason, steps = humanize_adb_error(message)
+                self.last_error_details = {
+                    "title": title,
+                    "reason": reason,
+                    "steps": steps,
+                    "raw": message
+                }
         self.log(message, level="info" if status != "error" else "error")
 
 
@@ -310,15 +433,18 @@ def test_adb_connection():
     if not connected_devs:
         STATE.device_state = "disconnected"
         STATE.device_serial = None
-        STATE.log("❌ Автомобиль не обнаружен на шине USB (список adb devices пуст).", "warning")
-        STATE.log("💡 Совет:", "info")
-        STATE.log("   • Если вы уже открывали ADB и обновились у ОД (2.1.4.5+): проверьте кабель USB-A и активность экрана ГУ.", "info")
-        STATE.log("   • Если вы открываете ADB впервые: убедитесь, что перемычка установлена и запущен сценарий сброса настроек.", "info")
+        title, reason, steps = humanize_adb_error("no devices/emulators found")
+        STATE.log(f"❌ {title}: {reason}", "warning")
+        STATE.log("💡 Рекомендации по подключению:", "info")
+        for s in steps:
+            STATE.log(f"   • {s}", "info")
         res = {
             "ok": True,
             "connected": False,
             "state": "disconnected",
-            "message": "Устройство не обнаружено на USB. Проверьте кабель и активность экрана ГУ.",
+            "message": title,
+            "reason": reason,
+            "steps": steps,
             "recommendation": "not_connected"
         }
         STATE.last_test = res
@@ -458,7 +584,16 @@ def worker_reboot_and_verify():
     start_time = time.time()
     while not STATE.stop_worker:
         if time.time() - start_time > 300:
-            STATE.set_status("error", "Таймаут: ГУ не загрузилось за 5 минут. Проверьте кабель и перезагрузите вручную.", 3)
+            STATE.set_error(
+                title="Превышено время ожидания загрузки ГУ (5 минут)",
+                reason="Головное устройство не завершило цикл загрузки или отсутствует связь по USB.",
+                steps=[
+                    "Убедитесь, что экран мультимедиа автомобиля включился и загрузился.",
+                    "Проверьте надежность подключения кабеля USB-A к порту ГУ и ноутбука.",
+                    "При необходимости перезагрузите экран ГУ вручную удержанием кнопки громкости."
+                ],
+                raw="Boot verification timeout (300s)"
+            )
             return
 
         code, out, _ = run_adb(["shell", "getprop", "sys.boot_completed"], timeout=5)
@@ -481,20 +616,45 @@ def worker_unlock_and_install():
     apk_file = get_resource_path("Geely-ADB-Toggle-1.1.0.apk")
 
     if not os.path.isfile(unlock_script):
-        STATE.set_status("error", f"Файл {unlock_script} не найден!", 4)
+        STATE.set_error(
+            title="Отсутствует системный скрипт unlock-hu.sh",
+            reason=f"Файл скрипта не найден внутри пакета программы: {unlock_script}",
+            steps=["Убедитесь, что целостность файлов программы не была нарушена."],
+            raw=""
+        )
         return
 
-    # Check root
-    run_adb(["root"], timeout=10)
-    time.sleep(2)
-    run_adb(["wait-for-device"], timeout=10)
+    # 1. Pre-flight check: is device physically connected?
+    STATE.log("🔍 Проверка подключения к головному устройству автомобиля...", "cmd")
+    code, stdout, _ = run_adb(["get-state"], timeout=2)
+    if code != 0 or stdout.strip() != "device":
+        run_adb(["wait-for-device"], timeout=3)
+        code2, stdout2, err2 = run_adb(["get-state"], timeout=2)
+        if code2 != 0 or stdout2.strip() != "device":
+            title, reason, steps = humanize_adb_error(err2 or "no devices/emulators found")
+            STATE.set_error(title, reason, steps, raw=err2 or "no devices/emulators found")
+            return
 
-    # Push script
+    # 2. Check root access
+    STATE.log("🔑 Проверка прав суперпользователя (adb root)...", "cmd")
+    run_adb(["root"], timeout=10)
+    time.sleep(1)
+    run_adb(["wait-for-device"], timeout=5)
+
+    code_id, out_id, err_id = run_adb(["shell", "id", "-u"], timeout=5)
+    if code_id != 0 or out_id.strip() != "0":
+        err_msg = err_id or out_id or "UID != 0"
+        title, reason, steps = humanize_adb_error("must be root", context="Отсутствуют права суперпользователя (root) на ГУ")
+        STATE.set_error(title, reason, steps, raw=err_msg)
+        return
+
+    # 3. Push script
     STATE.log("📂 Загрузка системного скрипта разблокировки (unlock-hu.sh) на ГУ...", "cmd")
     STATE.log("💡 Пояснение: по умолчанию прошивка Geely отклоняет установку любых приложений без цифрового сертификата Parrot. Скрипт отключает эту блокировку в build.prop и отключает системный верификатор.", "info")
-    code, _, err = run_adb(["push", unlock_script, "/data/local/tmp/gt-unlock.sh"], timeout=15)
+    code, out_p, err_p = run_adb(["push", unlock_script, "/data/local/tmp/gt-unlock.sh"], timeout=15)
     if code != 0:
-        STATE.set_status("error", f"Ошибка копирования скрипта на ГУ: {err}", 4)
+        title, reason, steps = humanize_adb_error(err_p or out_p, context="Ошибка загрузки скрипта на ГУ")
+        STATE.set_error(title, reason, steps, raw=err_p or out_p)
         return
 
     # Run loop
@@ -528,7 +688,15 @@ def worker_unlock_and_install():
             reboot_ok = False
             while not STATE.stop_worker:
                 if time.time() - reboot_start > 300:
-                    STATE.set_status("error", "Таймаут: ГУ не перезагрузилось за 5 минут. Проверьте кабель USB.", 4)
+                    STATE.set_error(
+                        title="Превышено время перезагрузки ГУ (таймаут 5 минут)",
+                        reason="Головное устройство не вышло на связь после команды перезагрузки.",
+                        steps=[
+                            "Убедитесь, что экран мультимедиа автомобиля включился и загрузился.",
+                            "Проверьте надежность подключения кабеля USB-A к порту ГУ и ноутбука."
+                        ],
+                        raw="Reboot timeout exceeded 300s"
+                    )
                     return
                 c, b_out, _ = run_adb(["shell", "getprop", "sys.boot_completed"], timeout=5)
                 if c == 0 and b_out.strip() == "1":
@@ -541,7 +709,8 @@ def worker_unlock_and_install():
             time.sleep(2)
             run_adb(["wait-for-device"], timeout=10)
         else:
-            STATE.set_status("error", "Скрипт разблокировки завершился с непредвиденным кодом.", 4)
+            title, reason, steps = humanize_adb_error(out, context="Непредвиденный ответ скрипта разблокировки")
+            STATE.set_error(title, reason, steps, raw=out)
             return
 
     # Install Toggle APK if not already installed
