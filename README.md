@@ -6,13 +6,13 @@
 
 ## 📦 Готовые автономные сборки (Скачать в один клик)
 
-Для работы **не требуется** устанавливать Python или настраивать среду. Скачайте архив под вашу систему со страницы **[Релизы (Releases)](https://github.com/leonkil318/ADB_Unlock/releases/latest)**:
+Для работы **не требуется** устанавливать Python или настраивать среду. Скачайте один файл под вашу систему со страницы **[Релизы (Releases)](https://github.com/leonkil318/ADB_Unlock/releases/latest)**:
 
-| Платформа | Файл загрузки | Инструкция |
+| Платформа | Одиночный файл программы | Как запускать |
 | :--- | :--- | :--- |
-| **Windows 10/11** | [⬇️ **GeelyUnlock-Windows.zip**](https://github.com/leonkil318/ADB_Unlock/releases/latest/download/GeelyUnlock-Windows.zip) | Распаковать архив и запустить `СТАРТ_Windows.bat` |
-| **macOS (Apple Silicon / Intel)** | [⬇️ **GeelyUnlock-macOS.tar.gz**](https://github.com/leonkil318/ADB_Unlock/releases/latest/download/GeelyUnlock-macOS.tar.gz) | Распаковать и запустить `СТАРТ_Mac.command` |
-| **Linux (Ubuntu / Debian / Fedora)** | [⬇️ **GeelyUnlock-Linux.tar.gz**](https://github.com/leonkil318/ADB_Unlock/releases/latest/download/GeelyUnlock-Linux.tar.gz) | Распаковать и запустить `./СТАРТ_Linux.sh` |
+| **Windows 10/11** | [⬇️ **GeelyUnlock.exe**](https://github.com/leonkil318/ADB_Unlock/releases/latest/download/GeelyUnlock.exe) | Двойной клик по скачанному `GeelyUnlock.exe` |
+| **macOS (Apple Silicon / Intel)** | [⬇️ **GeelyUnlock-macOS**](https://github.com/leonkil318/ADB_Unlock/releases/latest/download/GeelyUnlock-macOS) | `chmod +x GeelyUnlock-macOS` и запуск |
+| **Linux (Ubuntu / Debian / Fedora)** | [⬇️ **GeelyUnlock-Linux**](https://github.com/leonkil318/ADB_Unlock/releases/latest/download/GeelyUnlock-Linux) | `chmod +x GeelyUnlock-Linux` и запуск |
 
 ---
 

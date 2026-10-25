@@ -1,4 +1,4 @@
-name: Build and Release Autonomous Packages
+name: Build Single File Releases
 
 on:
   push:
@@ -24,10 +24,13 @@ jobs:
         include:
           - os: windows-latest
             os-name: Windows
+            binary-name: GeelyUnlock.exe
           - os: macos-latest
             os-name: macOS
+            binary-name: GeelyUnlock-macOS
           - os: ubuntu-latest
             os-name: Linux
+            binary-name: GeelyUnlock-Linux
 
     steps:
       - name: Checkout repository
@@ -41,99 +44,65 @@ jobs:
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      # Build Windows
-      - name: Build Windows binary
+      # Build Windows: 1 single exe
+      - name: Build Windows single binary
         if: runner.os == 'Windows'
         run: |
-          pyinstaller --clean --onefile --name "geely_unlock" `
-            --distpath "core" `
+          pyinstaller --clean --onefile --name "GeelyUnlock" `
+            --distpath "dist_single" `
             --add-data "core/bin/adb.exe;bin" `
             --add-data "core/bin/AdbWinApi.dll;bin" `
             --add-data "core/bin/AdbWinUsbApi.dll;bin" `
             --add-data "core/unlock-hu.sh;." `
             --add-data "core/Geely-ADB-Toggle-1.1.0.apk;." `
             core/main.py
-          
-          # Standalone EXE
-          copy "core\geely_unlock.exe" "GeelyUnlock.exe"
-          
-          # Zip package
-          mkdir release_pkg
-          copy "СТАРТ_Windows.bat" "release_pkg\"
-          copy "README.md" "release_pkg\"
-          mkdir "release_pkg\core"
-          copy "core\geely_unlock.exe" "release_pkg\core\"
-          Compress-Archive -Path "release_pkg\*" -DestinationPath "GeelyUnlock-Windows.zip"
 
-      # Build macOS
-      - name: Build macOS binary
+      # Build macOS: 1 single binary
+      - name: Build macOS single binary
         if: runner.os == 'macOS'
         run: |
-          chmod +x core/bin/adb-darwin core/unlock-hu.sh СТАРТ_Mac.command
-          pyinstaller --clean --onefile --name "geely_unlock" \
-            --distpath "core" \
+          chmod +x core/bin/adb-darwin core/unlock-hu.sh
+          pyinstaller --clean --onefile --name "GeelyUnlock-macOS" \
+            --distpath "dist_single" \
             --add-data "core/bin/adb-darwin:bin" \
             --add-data "core/unlock-hu.sh:." \
             --add-data "core/Geely-ADB-Toggle-1.1.0.apk:." \
             core/main.py
-          
-          chmod +x core/geely_unlock
-          cp core/geely_unlock GeelyUnlock-macOS
-          
-          mkdir release_pkg
-          cp СТАРТ_Mac.command release_pkg/
-          cp README.md release_pkg/
-          mkdir -p release_pkg/core
-          cp core/geely_unlock release_pkg/core/
-          tar -czvf GeelyUnlock-macOS.tar.gz -C release_pkg .
+          chmod +x dist_single/GeelyUnlock-macOS
 
-      # Build Linux
-      - name: Build Linux binary
+      # Build Linux: 1 single binary
+      - name: Build Linux single binary
         if: runner.os == 'Linux'
         run: |
-          chmod +x core/bin/adb-linux core/unlock-hu.sh СТАРТ_Linux.sh
-          pyinstaller --clean --onefile --name "geely_unlock" \
-            --distpath "core" \
+          chmod +x core/bin/adb-linux core/unlock-hu.sh
+          pyinstaller --clean --onefile --name "GeelyUnlock-Linux" \
+            --distpath "dist_single" \
             --add-data "core/bin/adb-linux:bin" \
             --add-data "core/unlock-hu.sh:." \
             --add-data "core/Geely-ADB-Toggle-1.1.0.apk:." \
             core/main.py
-          
-          chmod +x core/geely_unlock
-          cp core/geely_unlock GeelyUnlock-Linux
-          
-          mkdir release_pkg
-          cp СТАРТ_Linux.sh release_pkg/
-          cp README.md release_pkg/
-          mkdir -p release_pkg/core
-          cp core/geely_unlock release_pkg/core/
-          tar -czvf GeelyUnlock-Linux.tar.gz -C release_pkg .
+          chmod +x dist_single/GeelyUnlock-Linux
 
-      - name: Upload artifacts
+      - name: Upload single binary
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-${{ matrix.os-name }}
-          path: |
-            *.exe
-            GeelyUnlock-macOS
-            GeelyUnlock-Linux
-            *.zip
-            *.tar.gz
+          name: ${{ matrix.binary-name }}
+          path: dist_single/${{ matrix.binary-name }}
 
   release:
-    name: Create or Update GitHub Release
+    name: Publish 3 Single Executable Files to GitHub Release
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
+      - name: Download all single binaries
         uses: actions/download-artifact@v4
         with:
-          path: artifacts/
+          path: release_files/
 
       - name: Prepare release files
         run: |
           mkdir dist
-          find artifacts/ -type f \( -name "*.exe" -o -name "GeelyUnlock-macOS" -o -name "GeelyUnlock-Linux" -o -name "*.zip" -o -name "*.tar.gz" \) -exec cp {} dist/ \;
+          find release_files/ -type f \( -name "GeelyUnlock.exe" -o -name "GeelyUnlock-macOS" -o -name "GeelyUnlock-Linux" \) -exec cp {} dist/ \;
           ls -la dist/
 
       - name: Publish or Update Release
@@ -144,4 +113,4 @@ jobs:
           name: Geely ADB Unlock Master ${{ github.ref_name == 'main' && 'v2.1.4.5' || github.ref_name }}
           draft: false
           prerelease: false
-          generate_release_notes: true
+          generate_release_notes: false
