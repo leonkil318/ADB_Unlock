@@ -78,6 +78,11 @@ _ZELDA_FANFARE_NOTES = [
     (554.37, 0.35),
 ]
 
+# Short UI Chimes
+_STEP_NOTES = [(987.77, 0.05)]
+_RADAR_NOTES = [(659.25, 0.04)]
+_ERROR_NOTES = [(261.63, 0.12), (185.00, 0.18)]
+
 # Pre-synthesize in memory (takes < 0.05s total at startup)
 _WAV_CACHE = {
     "success": _synthesize_wav(_ZELDA_SECRET_NOTES, volume=0.28),
