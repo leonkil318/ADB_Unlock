@@ -5,7 +5,7 @@ Uses standard library (math, wave, struct, winsound) with zero external pip libr
 Features:
 - Smooth ADSR envelopes (no clicks, no pops, no speaker scratches).
 - In-memory WAV playback via Windows waveOut / SND_MEMORY.
-- Disabled by default for quiet, non-intrusive operation.
+- Enabled by default for interactive feedback (short non-looping chimes).
 """
 
 import sys
@@ -17,7 +17,7 @@ import wave
 import time
 import threading
 
-SOUND_ENABLED = False
+SOUND_ENABLED = True
 _lock = threading.Lock()
 
 
