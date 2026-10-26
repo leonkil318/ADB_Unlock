@@ -42,7 +42,7 @@ from tui import (
     C_GRAY
 )
 
-from sound import toggle_sound, play_sound, play_bgm, stop_bgm
+from sound import toggle_sound, play_sound
 
 
 def safe_input(prompt, default=""):
@@ -143,9 +143,6 @@ def main():
     if STATE.device_state == "connected":
         test_adb_connection()
 
-    # Start gentle retro Zelda music box
-    play_bgm(loop=True)
-
     while True:
         clear_screen()
         print_banner()
@@ -175,9 +172,8 @@ def main():
         elif choice.lower() in ["6", "s", "ы"]:
             enabled = toggle_sound()
             status_str = "ВКЛЮЧЕНЫ" if enabled else "ВЫКЛЮЧЕНЫ"
-            STATE.log(f"Звуковые эффекты и мелодия Zelda: {status_str}", "info")
+            STATE.log(f"Звуковые эффекты: {status_str}", "info")
         elif choice in ["0", "q", "exit", "quit"]:
-            stop_bgm()
             play_sound("step")
             print(f"\n{C_GREEN}Завершение работы. Удачи на дорогах!{C_RESET}")
             time.sleep(0.5)
