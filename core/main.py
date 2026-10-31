@@ -32,6 +32,7 @@ from tui import (
     render_menu,
     render_recent_logs,
     run_interactive_task,
+    render_help_screen,
     C_RESET,
     C_BOLD,
     C_CYAN,
@@ -150,7 +151,7 @@ def main():
         render_menu(STATE)
         render_recent_logs(STATE, count=4)
 
-        choice = safe_input(f"\n{C_CYAN}{C_BOLD}Выберите пункт меню [0-6, S - Звук] > {C_RESET}", default="0").strip()
+        choice = safe_input(f"\n{C_CYAN}{C_BOLD}Выберите пункт меню [0-7, S - Звук, ? - Справка] > {C_RESET}", default="0").strip()
 
         if choice == "1":
             play_sound("step")
@@ -173,6 +174,9 @@ def main():
             enabled = toggle_sound()
             status_str = "ВКЛЮЧЕНЫ" if enabled else "ВЫКЛЮЧЕНЫ"
             STATE.log(f"Звуковые эффекты: {status_str}", "info")
+        elif choice.lower() in ["7", "?", "help", "h", "справка", "инфо"]:
+            play_sound("step")
+            render_help_screen()
         elif choice in ["0", "q", "exit", "quit"]:
             play_sound("step")
             print(f"\n{C_GREEN}Завершение работы. Удачи на дорогах!{C_RESET}")

@@ -247,6 +247,7 @@ def render_menu(state):
     print_menu_item(f"{C_WHITE}[5]{C_RESET} Перезапустить службу ADB (Очистить зависшие процессы)")
     sound_badge = f"{C_GREEN}[ ВКЛ ]{C_RESET}" if is_sound_enabled() else f"{C_GRAY}[ ВЫКЛ ]{C_RESET}"
     print_menu_item(f"{C_WHITE}[6]{C_RESET} Звуковые эффекты: {sound_badge}")
+    print_menu_item(f"{C_YELLOW}[7]{C_RESET} Справка: Что программа делает с машиной? (Простыми словами)")
     print_menu_item(f"{C_GRAY}[0] Выход{C_RESET}")
 
     print(f"{C_CYAN}└{'─' * (W - 2)}┘{C_RESET}")
@@ -453,3 +454,72 @@ def run_interactive_task(state, task_fn, title="Выполнение опера�
         input(f"{C_CYAN}Нажмите Enter для возврата в меню...{C_RESET}")
     except (KeyboardInterrupt, EOFError):
         pass
+
+
+def render_help_screen():
+    """Renders a friendly, easy-to-understand explanation of what the program does with the car."""
+    clear_screen()
+    print_banner()
+    W = get_terminal_width()
+    inner = W - 4
+
+    def box_title(title):
+        t = f"┌─ {title} "
+        dash = max(2, W - visible_len(t) - 1)
+        print(f"\n{C_CYAN}{t}{'─' * dash}┐{C_RESET}")
+
+    def box_line(text, color=C_WHITE):
+        clean = ANSI_REGEX.sub('', text)
+        for line in textwrap.wrap(clean, width=inner, subsequent_indent="  "):
+            p = pad_box_line(f"{color}{line}{C_RESET}", inner)
+            print(f"{C_CYAN}│{C_RESET} {p} {C_CYAN}│{C_RESET}")
+
+    def box_bottom():
+        print(f"{C_CYAN}└{'─' * (W - 2)}┘{C_RESET}")
+
+    box_title("💡 СУТЬ ПРОГРАММЫ: ЧТО МЫ ДЕЛАЕМ С МАШИНОЙ? (НА ПАЛЬЦАХ)")
+    box_line("Экран мультимедиа Geely — это обычный Android-планшет. Но с завода он", C_WHITE)
+    box_line("заперт в «бронированный сейф»:", C_WHITE)
+    box_line(" 1. Разъём USB заблокирован: провод от ноутбука его не видит.", C_YELLOW)
+    box_line(" 2. Свои приложения (Яндекс.Навигатор, YouTube) ставить нельзя — стоят 2 «охранника».", C_YELLOW)
+    box_line(" 3. Любые временные изменения сбрасываются при перезапуске автомобиля.", C_YELLOW)
+    box_line("Наша программа — это безопасный цифровой ключ, который всё настраивает за 3 шага:", C_GREEN)
+    box_bottom()
+
+    box_title("🚪 ШАГ 1: ОТКРЫВАЕМ «СЛУЖЕБНУЮ ФОРТОЧКУ» (ADB)")
+    box_line("• Зачем перемычка? Завод оставил для инженеров тайную лазейку. При замыкании", C_WHITE)
+    box_line("  двух контактов планшет думает: «Я на сервисе, нужно приоткрыть сервисный порт».", C_WHITE)
+    box_line("• Зачем сброс настроек (Factory Reset)? При штатном сбросе планшет перезагружается", C_WHITE)
+    box_line("  и ровно на 20 секунд открывает служебное окно без ограничений.", C_WHITE)
+    box_line("• Что делает программа? Компьютер ловит эти 20 секунд и молниеносно отправляет", C_CYAN)
+    box_line("  команду фиксации VHAL: «Включить постоянный ADB!». Планшет сохраняет флаг.", C_CYAN)
+    box_line("  После этого перемычку снимают навсегда — порт больше никогда не закроется.", C_GREEN)
+    box_bottom()
+
+    box_title("👮 ШАГ 2: УСЫПЛЯЕМ «ОХРАННИКОВ», ЗАПРЕЩАЮЩИХ УСТАНОВКУ")
+    box_line("1. Охранник «Parrot» (Попугай) проверяет цифровую подпись завода Geely.", C_WHITE)
+    box_line("   Если подписи нет — выкидывает APK. Мы переключаем app_verify=false.", C_CYAN)
+    box_line("   Охранник спокойно засыпает и больше ни к кому не придирается.", C_GREEN)
+    box_line("2. Охранник «AutoInstallVerifier» — системный робот, блокирующий установку APK.", C_WHITE)
+    box_line("   Программа принудительно отключает этого робота для всех профилей ГУ.", C_GREEN)
+    box_bottom()
+
+    box_title("📱 ШАГ 3: СТАВИМ КНОПКУ (ADB TOGGLE) И ОТКРЫВАЕМ МАГАЗИН")
+    box_line("• На экран ГУ ставится удобный тумблер: можно в один клик переключать разъём", C_WHITE)
+    box_line("  между обычной флешкой с музыкой и кабелем отладки.", C_WHITE)
+    box_line("• Открывается веб-установщик GeelyTune: выбираете программы и ставите в 1 клик!", C_GREEN)
+    box_bottom()
+
+    box_title("🛡️ БЕЗОПАСНОСТЬ: ЧТО С МАШИНОЙ И ПЛАНШЕТОМ?")
+    box_line("• Мы НЕ трогаем прошивку двигателя, тормозов, рулевого управления или подушек.", C_WHITE)
+    box_line("• Системные разделы защищены: изменения накладываются через прозрачный слой (overlay).", C_WHITE)
+    box_line("• Старые слои не стираются, а сдвигаются («умная салфетка на полочке»).", C_WHITE)
+    box_line("• Для европейских машин (e245_eu) есть встроенный предохранитель.", C_WHITE)
+    box_bottom()
+
+    print()
+    try:
+        input(f"{C_CYAN}Нажмите Enter для возврата в главное меню...{C_RESET}")
+    except (KeyboardInterrupt, EOFError):
+        pass
+
