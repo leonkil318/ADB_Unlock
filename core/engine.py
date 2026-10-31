@@ -485,12 +485,18 @@ def test_adb_connection():
     STATE.log(f"🚘 Модель ГУ: {model_info} | Прошивка: {firmware_info}", "info")
 
     # 4. Check Parrot app_verify
+    _, product_val, _ = run_adb(["shell", "getprop", "ro.build.product"], timeout=5)
+    is_eu = "e245_eu" in (product_val or "").lower()
     _, parrot_val, _ = run_adb(["shell", "getprop", "ro.vendor.ecarx.app_verify"], timeout=5)
     parrot_val = parrot_val.strip().lower()
-    parrot_locked = (parrot_val == "true")
-    if parrot_locked:
+    if is_eu:
+        parrot_locked = False
+        STATE.log("🇪🇺 Версия ГУ: экспортная европейская (e245_eu) — Parrot встроен в систему и не блокирует установку", "info")
+    elif parrot_val == "true":
+        parrot_locked = True
         STATE.log("🔒 Защита Parrot certificates: ВКЛЮЧЕНА (блокирует установку сторонних APK)", "warning")
     else:
+        parrot_locked = False
         STATE.log("🔓 Защита Parrot certificates: ВЫКЛЮЧЕНА (установка сторонних APK разрешена)", "success")
 
     # 5. Check AutoInstallVerifier package
@@ -665,6 +671,7 @@ def worker_unlock_and_install():
         return
 
     # Run loop
+    unlocked_ok = False
     for pass_num in range(1, 9):
         if STATE.stop_worker:
             STATE.log("⚠️ Операция прервана пользователем", "warning")
@@ -683,6 +690,13 @@ def worker_unlock_and_install():
             run_adb(["shell", "rm", "-f", "/data/local/tmp/gt-unlock.sh"], timeout=5)
             STATE.log("✅ Ограничения Parrot и системный верификатор успешно отключены!", "success")
             STATE.log("💡 Теперь система автомобиля позволит устанавливать любые стандартные Android APK (Яндекс.Навигатор, видеоплееры, лаунчеры).", "info")
+            unlocked_ok = True
+            break
+        elif "GT:PARROT" in out:
+            run_adb(["shell", "rm", "-f", "/data/local/tmp/gt-unlock.sh"], timeout=5)
+            STATE.log("ℹ️ Обнаружена экспортная европейская версия (e245_eu): защита Parrot встроена на уровне ядра.", "info")
+            STATE.log("✅ Системные верификаторы (AutoInstallVerifier) и глобальные проверки успешно отключены!", "success")
+            unlocked_ok = True
             break
         elif "GT:REMOUNT" in out:
             STATE.log("🔄 Открываем системный раздел диска ГУ для записи (remount)...", "info")
@@ -720,6 +734,11 @@ def worker_unlock_and_install():
             title, reason, steps = humanize_adb_error(out, context="Непредвиденный ответ скрипта разблокировки")
             STATE.set_error(title, reason, steps, raw=out)
             return
+
+    if not unlocked_ok:
+        title, reason, steps = humanize_adb_error(out, context="Не удалось завершить снятие ограничений за 8 проходов")
+        STATE.set_error(title, reason, steps, raw=out)
+        return
 
     # Install Toggle APK if not already installed
     _, toggle_check, _ = run_adb(["shell", "pm", "list", "packages"], timeout=5)
