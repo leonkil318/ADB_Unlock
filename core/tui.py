@@ -129,8 +129,8 @@ def print_banner():
     top = f"{C_CYAN}╔" + ("═" * inner) + f"╗{C_RESET}"
     bot = f"{C_CYAN}╚" + ("═" * inner) + f"╝{C_RESET}"
 
-    t1 = "GEELY ADB UNLOCK MASTER v2.1.4.5"
-    t2 = "Flyme Auto / Ecarx Service Terminal • EX5 EM-i / X80"
+    t1 = "GEELY ADB UNLOCK MASTER v2.2.0"
+    t2 = "Flyme Auto / Ecarx Service Terminal • EX5 EM-i / X80 (2.1.4.5 / 2.2.0)"
 
     def center_line(text, color):
         v = visible_len(text)
@@ -153,7 +153,7 @@ def render_diagnostic_card(state):
     connected = t.get("connected", state.device_state == "connected")
     serial = t.get("serial") or state.device_serial or "Не обнаружено"
     model = t.get("model") or ("Штатное ГУ Geely" if connected else "-")
-    firmware = t.get("firmware") or ("2.1.4.5+" if connected else "-")
+    firmware = t.get("firmware") or ("2.1.4.5 / 2.2.0" if connected else "-")
 
     if connected:
         adb_badge = f"{C_GREEN}[ АКТИВЕН ]{C_RESET}"
@@ -163,8 +163,14 @@ def render_diagnostic_card(state):
         adb_badge = f"{C_RED}[ НЕ ПОДКЛЮЧЕН ]{C_RESET}"
 
     if connected:
+        p_desc = t.get("parrot_status_desc")
         if t.get("parrot_locked"):
-            parrot_badge = f"{C_YELLOW}[ БЛОКИРУЕТ ]{C_RESET}"
+            if p_desc == "hardcoded":
+                parrot_badge = f"{C_RED}[ ВШИТА (СТАРАЯ) ]{C_RESET}"
+            else:
+                parrot_badge = f"{C_YELLOW}[ БЛОКИРУЕТ ]{C_RESET}"
+        elif p_desc == "absent":
+            parrot_badge = f"{C_GREEN}[ 2.2.0 (СНЯТА) ]{C_RESET}"
         else:
             parrot_badge = f"{C_GREEN}[ ВЫКЛЮЧЕНА ]{C_RESET}"
 
@@ -237,9 +243,9 @@ def render_menu(state):
         print(f"{C_CYAN}│{C_RESET} {p} {C_CYAN}│{C_RESET}")
 
     if connected and needs_unlock:
-        print_menu_item(f"{C_GREEN}{C_BOLD}[1] Снять защиту установки (ОД 2.1.4.5+, ТОЛЬКО если ADB уже открыт){C_RESET}")
+        print_menu_item(f"{C_GREEN}{C_BOLD}[1] Снять защиту установки (2.1.4.5 / 2.2.0 / GMC, если ADB уже открыт){C_RESET}")
     else:
-        print_menu_item(f"{C_WHITE}[1]{C_RESET} Снять защиту установки (Только если ADB уже открыт / после ОД)")
+        print_menu_item(f"{C_WHITE}[1]{C_RESET} Снять защиту установки (2.1.4.5 / 2.2.0 / GMC, если ADB уже открыт)")
 
     print_menu_item(f"{C_WHITE}[2]{C_RESET} Открыть ADB с нуля (Фиксация порта через перемычку + сброс ГУ)")
     print_menu_item(f"{C_WHITE}[3]{C_RESET} Проверить статус ГУ (Диагностика связи и состояния блокировок)")
@@ -249,6 +255,10 @@ def render_menu(state):
     sound_badge = f"{C_GREEN}[ ВКЛ ]{C_RESET}" if is_sound_enabled() else f"{C_GRAY}[ ВЫКЛ ]{C_RESET}"
     print_menu_item(f"{C_WHITE}[7]{C_RESET} Звуковые эффекты: {sound_badge}")
     print_menu_item(f"{C_YELLOW}[8]{C_RESET} Справка: Что делает программа? (Простыми словами)")
+    if t.get("parrot_status_desc") == "hardcoded":
+        print_menu_item(f"{C_YELLOW}{C_BOLD}[T] Установить APK через Parrot Trust (для ранней прошивки < 2.1.4.5){C_RESET}")
+    else:
+        print_menu_item(f"{C_GRAY}[T] Установить APK через Parrot Trust (только для ранних прошивок < 2.1.4.5){C_RESET}")
     print_menu_item(f"{C_GRAY}[0] Выход{C_RESET}")
 
     print(f"{C_CYAN}└{'─' * (W - 2)}┘{C_RESET}")
@@ -490,10 +500,12 @@ def render_help_screen():
     box_bottom()
 
     box_title("[!] В ЧЁМ РАЗНИЦА: ПУНКТ 1 ИЛИ ПУНКТ 2?")
-    box_line("• Пункт [1] — Снятие защиты установки (после дилера ОД 2.1.4.5+):", C_YELLOW)
+    box_line("• Пункт [1] — Снятие защиты установки (2.1.4.5 / 2.2.0 / после GMC):", C_YELLOW)
     box_line("  ВАЖНО: Пункт [1] НЕ открывает закрытый порт ADB! Он нужен ТОЛЬКО если ADB", C_RED)
-    box_line("  уже был открыт ранее, но после обновления у дилера слетели права на установку APK.", C_WHITE)
-    box_line("  Перемычка и сброс НЕ нужны: скрипт за секунды выключает Parrot и верификаторы.", C_GREEN)
+    box_line("  уже был открыт ранее, но после обновления прошивки (до 2.1.4.5, 2.2.0 или GMC)", C_WHITE)
+    box_line("  слетели настройки и заблокировалась установка сторонних APK.", C_WHITE)
+    box_line("  Перемычка и сброс НЕ нужны: скрипт автоматически определяет прошивку,", C_GREEN)
+    box_line("  отключает блокировки, открывает системные разделы и убирает старые слои scratch.", C_GREEN)
     box_line("• Пункт [2] — Открыть ADB с нуля (порт закрыт с завода):", C_CYAN)
     box_line("  Если машина новая и ноутбук не видит ГУ по кабелю. Нужна перемычка и сброс ГУ", C_WHITE)
     box_line("  (Основное приложение ➔ Мой автомобиль ➔ Сброс к заводским настройкам),", C_WHITE)
@@ -511,11 +523,12 @@ def render_help_screen():
     box_bottom()
 
     box_title("[ШАГ 2] УСЫПЛЯЕМ «ОХРАННИКОВ», ЗАПРЕЩАЮЩИХ УСТАНОВКУ")
-    box_line("1. Охранник «Parrot» (Попугай) проверяет цифровую подпись завода Geely.", C_WHITE)
-    box_line("   Если подписи нет — выкидывает APK. Мы переключаем app_verify=false.", C_CYAN)
-    box_line("   Охранник спокойно засыпает и больше ни к кому не придирается.", C_GREEN)
+    box_line("1. Охранник «Parrot» (Попугай) на 2.1.4.5 проверял цифровую подпись завода Geely.", C_WHITE)
+    box_line("   Если подписи нет — выкидывал APK. Мы переключаем app_verify=false.", C_CYAN)
+    box_line("   На прошивках 2.2.0 и после GMC Parrot уже снят производителем, но требуются", C_GREEN)
+    box_line("   открытие системных разделов и безопасная очистка старых слоев scratch.", C_GREEN)
     box_line("2. Охранник «AutoInstallVerifier» — системный робот, блокирующий установку APK.", C_WHITE)
-    box_line("   Программа принудительно отключает этого робота для всех профилей ГУ.", C_GREEN)
+    box_line("   Программа отключает этого робота для всех профилей пользователей ГУ.", C_GREEN)
     box_bottom()
 
     box_title("[ШАГ 3] ТУМБЛЕР (ADB TOGGLE), ТВИКИ GEELYTUNE И ПРИЛОЖЕНИЯ")

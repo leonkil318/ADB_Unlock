@@ -420,6 +420,37 @@ def check_devices():
         return False
 
 
+def ensure_root(timeout=60):
+    """
+    Ensures root access (UID 0), handling cases where adbd restarts after boot
+    or drops root privileges on newer 2.2.0 / GMC firmwares.
+    Matches gt_root logic from the official GeelyTune unlock scripts.
+    """
+    code_r, out_r, _ = run_adb(["root"], timeout=10)
+    time.sleep(1)
+    run_adb(["wait-for-device"], timeout=5)
+
+    code_id, out_id, _ = run_adb(["shell", "id", "-u"], timeout=5)
+    if code_id == 0 and out_id.strip() == "0":
+        return True
+
+    # If UID != 0 or adbd cannot run as root directly, retry loop with service restart
+    start_time = time.time()
+    iteration = 0
+    while time.time() - start_time < timeout:
+        if STATE.stop_worker:
+            return False
+        if iteration % 8 == 0:
+            run_adb(["shell", "setprop service.adb.root 1; setprop ctl.restart adbd"], timeout=5)
+        time.sleep(1)
+        code_id, out_id, _ = run_adb(["shell", "id", "-u"], timeout=5)
+        if code_id == 0 and out_id.strip() == "0":
+            return True
+        iteration += 1
+
+    return False
+
+
 def test_adb_connection():
     """Runs a comprehensive test of the ADB connection, head unit state, and security locks."""
     STATE.log("🔍 Запуск проверки связи с автомобилем (Тест ADB)...", "cmd")
@@ -484,21 +515,18 @@ def test_adb_connection():
     serial = connected_devs[0]
     STATE.device_serial = serial
     STATE.device_state = "connected"
+    if len(connected_devs) > 1:
+        STATE.log(f"⚠️ Внимание: к ноутбуку подключено несколько устройств ({len(connected_devs)}). Отключите посторонние телефоны/планшеты.", "warning")
     STATE.log(f"✅ Автомобиль успешно подключен! Серийный номер: {serial}", "success")
 
     # 2. Test root access
     STATE.log("🔑 Проверка доступа суперпользователя (adb root)...", "cmd")
-    code_r, out_r, _ = run_adb(["root"], timeout=8)
-    time.sleep(1)
-    run_adb(["wait-for-device"], timeout=5)
-
-    root_ok = ("already running as root" in out_r.lower() or "restarting adbd as root" in out_r.lower() or code_r == 0)
-    code_id, out_id, _ = run_adb(["shell", "id", "-u"], timeout=5)
-    if code_id == 0 and out_id.strip() == "0":
-        root_ok = True
+    root_ok = ensure_root(timeout=8)
+    if root_ok:
         STATE.log("✅ Root-доступ подтверждён (UID: 0).", "success")
     else:
-        STATE.log(f"⚠️ Ответ при запросе root: {out_r or out_id}", "warning")
+        code_id, out_id, _ = run_adb(["shell", "id", "-u"], timeout=3)
+        STATE.log(f"⚠️ Root-доступ ограничен или не предоставлен (UID: {out_id or 'неизвестно'}).", "warning")
 
     # 3. Read firmware & system properties
     STATE.log("📋 Считывание сведений о прошивке ГУ...", "cmd")
@@ -509,20 +537,28 @@ def test_adb_connection():
     model_info = model.strip() or "Штатное ГУ Geely"
     STATE.log(f"🚘 Модель ГУ: {model_info} | Прошивка: {firmware_info}", "info")
 
-    # 4. Check Parrot app_verify
-    _, product_val, _ = run_adb(["shell", "getprop", "ro.build.product"], timeout=5)
-    is_eu = "e245_eu" in (product_val or "").lower()
+    # 4. Check Parrot app_verify and firmware generation (2.1.4.5 vs 2.2.0 vs early)
     _, parrot_val, _ = run_adb(["shell", "getprop", "ro.vendor.ecarx.app_verify"], timeout=5)
     parrot_val = parrot_val.strip().lower()
-    if is_eu:
-        parrot_locked = False
-        STATE.log("🇪🇺 Версия ГУ: экспортная европейская (e245_eu) — Parrot встроен в систему и не блокирует установку", "info")
-    elif parrot_val == "true":
+    code_pdir, out_pdir, _ = run_adb(["shell", "[ -d /system/etc/security/parrot ] && echo 1 || echo 0"], timeout=5)
+    has_parrot_dir = (code_pdir == 0 and out_pdir.strip() == "1")
+
+    if parrot_val == "true":
         parrot_locked = True
-        STATE.log("🔒 Защита Parrot certificates: ВКЛЮЧЕНА (блокирует установку сторонних APK)", "warning")
+        parrot_status_desc = "locked"
+        STATE.log("🔒 Защита Parrot certificates: ВКЛЮЧЕНА (прошивка 2.1.4.5+, блокирует сторонние APK)", "warning")
+    elif parrot_val == "false":
+        parrot_locked = False
+        parrot_status_desc = "disabled"
+        STATE.log("🔓 Защита Parrot certificates: ВЫКЛЮЧЕНА (установка сторонних APK разрешена)", "success")
+    elif has_parrot_dir:
+        parrot_locked = True
+        parrot_status_desc = "hardcoded"
+        STATE.log("ℹ️ Защита Parrot certificates: РАННЯЯ ПРОШИВКА (вшита в систему без выключателя)", "warning")
     else:
         parrot_locked = False
-        STATE.log("🔓 Защита Parrot certificates: ВЫКЛЮЧЕНА (установка сторонних APK разрешена)", "success")
+        parrot_status_desc = "absent"
+        STATE.log("🔓 Защита Parrot certificates: ОТСУТСТВУЕТ (прошивка 2.2.0+ / после GMC, установка APK разрешена)", "success")
 
     # 5. Check AutoInstallVerifier package
     _, pm_out, _ = run_adb(["shell", "pm", "list", "packages", "-e"], timeout=8)
@@ -544,7 +580,7 @@ def test_adb_connection():
     if needs_unlock:
         recommendation = "quick_unlock"
         STATE.log("💡 ВЕРДИКТ: ADB активен! Перемычка НЕ требуется.", "success")
-        STATE.log("💡 Достаточно запустить экспресс-снятие ограничений в 1 клик.", "success")
+        STATE.log("💡 Достаточно запустить экспресс-снятие ограничений в 1 клик (подходит для 2.1.4.5, 2.2.0 и GMC).", "success")
     else:
         recommendation = "ready"
         STATE.log("🎉 ВЕРДИКТ: Все блокировки уже сняты! ГУ готово к установке любых приложений и твиков GeelyTune.", "success")
@@ -557,6 +593,7 @@ def test_adb_connection():
         "firmware": firmware_info,
         "root_ok": root_ok,
         "parrot_locked": parrot_locked,
+        "parrot_status_desc": parrot_status_desc,
         "verifier_active": verifier_active,
         "toggle_installed": toggle_installed,
         "needs_unlock": needs_unlock,
@@ -569,10 +606,10 @@ def test_adb_connection():
 
 # ==================== STEP 2: FACTORY RESET CATCH ====================
 def worker_catch_factory_reset():
-    """Continuously waits for device reboot, grants root, and sets VHAL property."""
-    STATE.set_status("working", "Ожидание перезагрузки ГУ после сброса к заводским настройкам... Не закрывайте окно!", 2)
+    """Continuously waits for device reboot, grants root, and sets VHAL property with adaptive 2.2.0 support."""
+    STATE.set_status("working", "Ожидание перезагрузки ГУ после сброса настроек... Не закрывайте окно!", 2)
     STATE.log("ВНИМАНИЕ: На экране авто перейдите: «Основное приложение» ➔ «Мой автомобиль» ➔ «Сброс к заводским настройкам» и согласитесь с предупреждениями.", "warning")
-    STATE.log("💡 Как это работает: при штатном сбросе система кратковременно открывает 20-секундное окно отладки. Программа непрерывно сканирует USB-порт и автоматически перехватит его.", "info")
+    STATE.log("💡 Как это работает: при сбросе система кратковременно открывает 20-секундное сервисное окно. Программа непрерывно сканирует USB и молниеносно фиксирует постоянный ADB.", "info")
 
     vhal_cmd = "/system/bin/lshal debug android.hardware.automotive.vehicle@2.0::IVehicle/default --set 557872680 i 0 a 0"
     attempt = 0
@@ -580,33 +617,39 @@ def worker_catch_factory_reset():
     while not STATE.stop_worker:
         code, stdout, _ = run_adb(["get-state"], timeout=2)
         if code != 0 or stdout != "device":
-            time.sleep(0.5)
+            time.sleep(0.2)
             continue
 
         attempt += 1
         STATE.log(f"⚡ Устройство обнаружено на шине USB! Попытка перехвата сервисного окна #{attempt}...", "cmd")
-        STATE.log("🔑 Запрашиваем права суперпользователя (adb root)...", "info")
-        
-        run_adb(["root"], timeout=5)
-        time.sleep(0.5)
-        run_adb(["wait-for-device"], timeout=5)
-        run_adb(["remount"], timeout=5)
 
-        STATE.log("📡 Отправка автомобилю VHAL-команды фиксации: USB_SWITCH=0 (постоянный ADB)...", "cmd")
-        STATE.log("💡 Что делает команда: lshal записывает в системную шину автомобиля флаг постоянного режима ADB, чтобы он больше не выключался после перезагрузок.", "info")
-        code, out, err = run_adb(["shell", vhal_cmd], timeout=8)
-        combined_out = f"{out} {err}".strip()
-        STATE.log(f"Ответ системы автомобиля: {combined_out}")
+        # Fast multi-attempt loop inside the open 20-second window
+        window_start = time.time()
+        while time.time() - window_start < 25 and not STATE.stop_worker:
+            # 1. Immediate root request
+            run_adb(["root"], timeout=3)
 
-        if "Set property" in combined_out:
-            play_sound("catch")
-            STATE.log("🎉 УСПЕХ! Автомобиль подтвердил фиксацию порта (Set property)! Постоянный ADB активирован.", "success")
-            STATE.set_status("success", "ADB зафиксирован! Снимите перемычку и подтвердите перезагрузку ГУ.", 3)
-            return
+            # 2. Immediately send VHAL command directly without wasting time on remount
+            code, out, err = run_adb(["shell", vhal_cmd], timeout=4)
+            combined_out = f"{out} {err}".strip()
 
-        if "Must be root" in combined_out:
-            STATE.log("⚠️ Сервисное окно (20 сек) успело закрыться до фиксации. Ничего страшного: снова нажмите «Сброс к заводским настройкам» (Основное приложение ➔ Мой автомобиль) на экране авто — скрипт продолжает ждать...", "warning")
+            if "Set property" in combined_out:
+                play_sound("catch")
+                STATE.log("🎉 УСПЕХ! Автомобиль подтвердил фиксацию порта (Set property)! Постоянный ADB активирован.", "success")
+                STATE.set_status("success", "ADB зафиксирован! Снимите перемычку и подтвердите перезагрузку ГУ.", 3)
+                return
 
+            if "Must be root" in combined_out or "cannot run as root" in combined_out:
+                # Trigger internal adbd root restart (crucial for 2.2.0 firmwares)
+                run_adb(["shell", "setprop service.adb.root 1; setprop ctl.restart adbd"], timeout=2)
+                time.sleep(0.4)
+            elif combined_out:
+                STATE.log(f"Ответ системы ГУ: {combined_out}")
+                time.sleep(0.4)
+            else:
+                time.sleep(0.3)
+
+        STATE.log("⚠️ Сервисное окно (20 сек) завершилось. Если окно закрылось раньше фиксации — снова нажмите «Сброс к заводским настройкам» на экране авто (скрипт продолжает сканирование)...", "warning")
         time.sleep(1)
 
 
@@ -675,20 +718,15 @@ def worker_unlock_and_install():
 
     # 2. Check root access
     STATE.log("🔑 Проверка прав суперпользователя (adb root)...", "cmd")
-    run_adb(["root"], timeout=10)
-    time.sleep(1)
-    run_adb(["wait-for-device"], timeout=5)
-
-    code_id, out_id, err_id = run_adb(["shell", "id", "-u"], timeout=5)
-    if code_id != 0 or out_id.strip() != "0":
-        err_msg = err_id or out_id or "UID != 0"
+    root_ok = ensure_root(timeout=60)
+    if not root_ok:
         title, reason, steps = humanize_adb_error("must be root", context="Отсутствуют права суперпользователя (root) на ГУ")
-        STATE.set_error(title, reason, steps, raw=err_msg)
+        STATE.set_error(title, reason, steps, raw="UID != 0 after ensure_root")
         return
 
     # 3. Push script
     STATE.log("📂 Загрузка системного скрипта разблокировки (unlock-hu.sh) на ГУ...", "cmd")
-    STATE.log("💡 Пояснение: по умолчанию прошивка Geely отклоняет установку любых приложений без цифрового сертификата Parrot. Скрипт отключает эту блокировку в build.prop и отключает системный верификатор.", "info")
+    STATE.log("💡 Пояснение: универсальный скрипт для 2.1.4.5 и 2.2.0. Он отключает защиту Parrot/AutoInstallVerifier, подготавливает системные разделы и изолирует старые оверлеи в scratch.", "info")
     code, out_p, err_p = run_adb(["push", unlock_script, "/data/local/tmp/gt-unlock.sh"], timeout=15)
     if code != 0:
         title, reason, steps = humanize_adb_error(err_p or out_p, context="Ошибка загрузки скрипта на ГУ")
@@ -713,16 +751,21 @@ def worker_unlock_and_install():
 
         if "GT:OK" in out:
             run_adb(["shell", "rm", "-f", "/data/local/tmp/gt-unlock.sh"], timeout=5)
-            STATE.log("✅ Ограничения Parrot и системный верификатор успешно отключены!", "success")
-            STATE.log("💡 Теперь система автомобиля позволит устанавливать любые стандартные Android APK: каталог софта, подогнанного под экран авто, доступен на https://ex5app.wingie.ru/ (автор — первооткрыватель @wingus) или свои APK.", "info")
+            STATE.log("✅ Все системные ограничения успешно сняты!", "success")
+            STATE.log("💡 Теперь система автомобиля позволит устанавливать любые стандартные Android APK: каталог софта доступен на https://ex5app.wingie.ru/ (автор — @wingus) или свои APK.", "info")
             unlocked_ok = True
             break
         elif "GT:PARROT" in out:
             run_adb(["shell", "rm", "-f", "/data/local/tmp/gt-unlock.sh"], timeout=5)
-            STATE.log("ℹ️ Обнаружена экспортная европейская версия (e245_eu): защита Parrot встроена на уровне ядра.", "info")
-            STATE.log("✅ Системные верификаторы (AutoInstallVerifier) и глобальные проверки успешно отключены!", "success")
-            unlocked_ok = True
-            break
+            STATE.log("⚠️ Обнаружена ранняя версия прошивки: защита Parrot вшита намертво и не имеет выключателя.", "warning")
+            STATE.log("💡 Для снятия ограничений обновите прошивку автомобиля у дилера до 2.1.4.5 или 2.2.0.", "info")
+            STATE.set_error(
+                title="Прошивка автомобиля устарела",
+                reason="Проверка подписи Parrot на ней включена всегда и не выключается.",
+                steps=["Обновите прошивку автомобиля у дилера до версии 2.1.4.5 или 2.2.0, после чего повторите процедуру."],
+                raw="GT:PARROT received"
+            )
+            return
         elif "GT:REMOUNT" in out:
             STATE.log("🔄 Открываем системный раздел диска ГУ для записи (remount)...", "info")
             run_adb(["remount"], timeout=15)
@@ -733,8 +776,24 @@ def worker_unlock_and_install():
             time.sleep(20)
             reboot_start = time.time()
             reboot_ok = False
+            rescue_attempted = False
             while not STATE.stop_worker:
-                if time.time() - reboot_start > 300:
+                elapsed = time.time() - reboot_start
+                if elapsed > 300:
+                    if not rescue_attempted:
+                        rescue_attempted = True
+                        STATE.log("⚠️ ГУ не загрузилось за 5 минут — активируем режим спасения (проверяем/отодвигаем слой прежней прошивки в scratch)...", "warning")
+                        ensure_root(timeout=15)
+                        code_res, out_res, _ = run_adb(["shell", "sh", "/data/local/tmp/gt-unlock.sh", "rescue"], timeout=60)
+                        for rline in out_res.splitlines():
+                            if rline.strip() and not rline.strip().startswith("GT:"):
+                                STATE.log(rline.strip())
+                        if "GT:REBOOT" in out_res:
+                            STATE.log("🔄 Конфликтный слой отодвинут, отправляем ГУ в повторную перезагрузку...", "info")
+                            run_adb(["reboot"], timeout=10)
+                            time.sleep(20)
+                            reboot_start = time.time()
+                            continue
                     STATE.set_error(
                         title="Превышено время перезагрузки ГУ (таймаут 5 минут)",
                         reason="Головное устройство не вышло на связь после команды перезагрузки.",
@@ -752,8 +811,7 @@ def worker_unlock_and_install():
                 time.sleep(3)
             if not reboot_ok or STATE.stop_worker:
                 return
-            run_adb(["root"], timeout=10)
-            time.sleep(2)
+            ensure_root(timeout=60)
             run_adb(["wait-for-device"], timeout=10)
         else:
             title, reason, steps = humanize_adb_error(out, context="Непредвиденный ответ скрипта разблокировки")
@@ -795,13 +853,14 @@ def worker_unlock_and_install():
     final_verifier_active = "com.ecarx.xsfinstallverifier" in (pm_check or "")
 
     if not final_parrot_locked:
-        STATE.log("🔓 Защита Parrot certificates: ВЫКЛЮЧЕНА (установка APK разрешена)", "success")
+        STATE.log("🔓 Защита Parrot certificates: ВЫКЛЮЧЕНА / НЕ ТРЕБУЕТСЯ (установка APK разрешена)", "success")
     if not final_verifier_active:
         STATE.log("🔓 Системный верификатор AutoInstallVerifier: ОТКЛЮЧЕН", "success")
 
     # Update STATE.last_test so UI reflects unlocked status
     if STATE.last_test and isinstance(STATE.last_test, dict):
         STATE.last_test["parrot_locked"] = final_parrot_locked
+        STATE.last_test["parrot_status_desc"] = "disabled" if parrot_check.strip().lower() == "false" else ("absent" if not parrot_check.strip() else "locked")
         STATE.last_test["verifier_active"] = final_verifier_active
         STATE.last_test["toggle_installed"] = True
         STATE.last_test["needs_unlock"] = False
@@ -813,9 +872,10 @@ def worker_unlock_and_install():
             "connected": True,
             "serial": STATE.device_serial,
             "model": "Geely Head Unit",
-            "firmware": "2.1.4.5+",
+            "firmware": "2.1.4.5 / 2.2.0",
             "root_ok": True,
             "parrot_locked": final_parrot_locked,
+            "parrot_status_desc": "absent" if not parrot_check.strip() else "disabled",
             "verifier_active": final_verifier_active,
             "toggle_installed": True,
             "needs_unlock": False,
@@ -825,3 +885,180 @@ def worker_unlock_and_install():
 
     STATE.set_status("success", "Поздравляем! Разблокировка полностью завершена!", 5)
     STATE.log("🏆 ВСЕ ЭТАПЫ РАЗБЛОКИРОВКИ ВЫПОЛНЕНЫ! Ограничения сняты: ставьте приложения с https://ex5app.wingie.ru/ (от @wingus), свои APK или твики GeelyTune.", "success")
+
+
+# ==================== PARROT TRUST (FOR EARLY FIRMWARES < 2.1.4.5) ====================
+def extract_apk_cert_pem(apk_path):
+    """
+    Extracts signing certificate from APK (APK Signature Scheme v2/v3 or v1 JAR)
+    and formats it as X.509 PEM. Zero external dependencies.
+    """
+    import struct
+    import base64
+    import zipfile
+
+    if not os.path.isfile(apk_path):
+        return None
+
+    try:
+        with open(apk_path, "rb") as f:
+            data = f.read()
+
+        def lp(buf, off):
+            n = struct.unpack_from("<I", buf, off)[0]
+            return buf[off + 4:off + 4 + n], off + 4 + n
+
+        # 1. Try APK Signature Scheme v2 / v3
+        eocd = data.rfind(b"PK\x05\x06")
+        if eocd >= 0:
+            cd = struct.unpack_from("<I", data, eocd + 16)[0]
+            if cd >= 24 and data[cd - 16:cd] == b"APK Sig Block 42":
+                size = struct.unpack_from("<Q", data, cd - 24)[0]
+                off, end = cd - size, cd - 24
+                pairs = {}
+                while off < end:
+                    n = struct.unpack_from("<Q", data, off)[0]
+                    pid = struct.unpack_from("<I", data, off + 8)[0]
+                    pairs[pid] = data[off + 12:off + 8 + n]
+                    off += 8 + n
+                for pid in (0xF05368C0, 0x7109871A):
+                    if pid in pairs:
+                        signers, _ = lp(pairs[pid], 0)
+                        signer, _ = lp(signers, 0)
+                        signed, _ = lp(signer, 0)
+                        _, o = lp(signed, 0)
+                        certs, _ = lp(signed, o)
+                        cert, _ = lp(certs, 0)
+                        b64 = base64.b64encode(cert).decode("ascii")
+                        lines = [b64[i:i + 64] for i in range(0, len(b64), 64)]
+                        return "-----BEGIN CERTIFICATE-----\n" + "\n".join(lines) + "\n-----END CERTIFICATE-----\n"
+
+        # 2. Fallback to v1 JAR signature (Windows PowerShell SignedCms)
+        if STATE.os_name == "windows":
+            with zipfile.ZipFile(apk_path) as z:
+                sig_name = next((n for n in z.namelist() if n.startswith("META-INF/") and n.rsplit(".", 1)[-1].upper() in ("RSA", "DSA", "EC")), None)
+                if sig_name:
+                    sig_bytes = z.read(sig_name)
+                    b64_sig = base64.b64encode(sig_bytes).decode("ascii")
+                    ps_script = (
+                        "Add-Type -AssemblyName System.Security; "
+                        f"$bytes = [Convert]::FromBase64String('{b64_sig}'); "
+                        "$cms = New-Object Security.Cryptography.Pkcs.SignedCms; "
+                        "$cms.Decode($bytes); "
+                        "[Convert]::ToBase64String($cms.Certificates[0].RawData)"
+                    )
+                    res = subprocess.run(["powershell", "-NoProfile", "-Command", ps_script], stdout=subprocess.PIPE, text=True, timeout=10)
+                    if res.returncode == 0 and res.stdout.strip():
+                        b64 = res.stdout.strip().replace("\r", "").replace("\n", "")
+                        lines = [b64[i:i + 64] for i in range(0, len(b64), 64)]
+                        return "-----BEGIN CERTIFICATE-----\n" + "\n".join(lines) + "\n-----END CERTIFICATE-----\n"
+    except Exception as e:
+        STATE.log(f"Предупреждение при анализе подписи: {e}", "warning")
+
+    return None
+
+
+def worker_install_via_parrot_trust(apk_path, app_name=None):
+    """
+    Installs an APK on early firmware (pre-2.1.4.5) by extracting its certificate,
+    pushing it into /system/etc/security/parrot/<name>.x509.pem, rebooting HU,
+    and installing the package.
+    """
+    import re
+
+    if not os.path.isfile(apk_path):
+        STATE.set_error("Файл APK не найден", f"Не найден указанный файл: {apk_path}", ["Проверьте путь к файлу."])
+        return
+
+    base_apk = os.path.basename(apk_path)
+    if not app_name:
+        app_name = os.path.splitext(base_apk)[0]
+    safe_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", app_name)
+    target_pem = f"/system/etc/security/parrot/{safe_name}.x509.pem"
+
+    STATE.set_status("working", f"Установка {base_apk} через Parrot Trust...")
+    STATE.log(f"📦 Анализ файла приложения: {base_apk}...", "cmd")
+
+    pem = extract_apk_cert_pem(apk_path)
+    if not pem:
+        STATE.set_error("Сертификат не извлечён", "Не удалось извлечь цифровую подпись из APK-файла.", ["Убедитесь, что APK корректно подписан."])
+        return
+
+    # Check for public test key
+    is_public = "android@android.com" in pem or "Android Open Source Project" in pem
+    if is_public:
+        STATE.log("ℹ️ Приложение подписано общедоступным тестовым ключом Android — добавление сертификата не требуется.", "info")
+    else:
+        STATE.log("🔑 Цифровая подпись успешно извлечена из APK!", "success")
+        STATE.log(f"📂 Запись сертификата в хранилище доверенных ключей ГУ: {target_pem}...", "cmd")
+
+        ensure_root(timeout=15)
+        run_adb(["remount"], timeout=15)
+
+        temp_pem = os.path.join(BIN_DIR, f"{safe_name}.x509.pem")
+        try:
+            with open(temp_pem, "w", encoding="utf-8") as f:
+                f.write(pem)
+            code, out, err = run_adb(["push", temp_pem, target_pem], timeout=15)
+        finally:
+            if os.path.isfile(temp_pem):
+                try:
+                    os.remove(temp_pem)
+                except Exception:
+                    pass
+
+        if code != 0:
+            STATE.set_error("Ошибка копирования сертификата", err or out, ["Проверьте доступность файловой системы ГУ."])
+            return
+
+        run_adb(["shell", f"chown root:root {target_pem} && chmod 644 {target_pem} && restorecon {target_pem}"])
+        STATE.log("✅ Сертификат добавлен в систему! Перезагружаем ГУ для применения (около 2 минут)...", "success")
+
+        run_adb(["reboot"], timeout=10)
+        time.sleep(20)
+
+        start_wait = time.time()
+        booted = False
+        while not STATE.stop_worker:
+            if time.time() - start_wait > 300:
+                STATE.set_error("Таймаут перезагрузки ГУ", "ГУ не загрузилось за 5 минут.", ["Проверьте экран автомобиля."])
+                return
+            c, b, _ = run_adb(["shell", "getprop", "sys.boot_completed"], timeout=5)
+            if c == 0 and b.strip() == "1":
+                booted = True
+                break
+            time.sleep(3)
+
+        if not booted or STATE.stop_worker:
+            return
+
+        ensure_root(timeout=30)
+        run_adb(["wait-for-device"], timeout=5)
+
+    # Install APK
+    STATE.log(f"📱 Установка приложения {base_apk} в систему...", "cmd")
+    run_adb(["shell", "settings", "put", "global", "verifier_verify_adb_installs", "0"], timeout=5)
+
+    installed_ok = False
+    for attempt in range(1, 5):
+        if STATE.stop_worker:
+            return
+        code_inst, out_inst, err_inst = run_adb(["install", "-r", "--user", "10", apk_path], timeout=90)
+        if "Success" in out_inst:
+            installed_ok = True
+            break
+        elif "Failure [" in (out_inst + err_inst):
+            c2, o2, _ = run_adb(["install", "-r", apk_path], timeout=90)
+            if "Success" in o2:
+                installed_ok = True
+                break
+            STATE.log(f"Попытка {attempt} вернула: {out_inst} {err_inst}. Повторяем...", "warning")
+        time.sleep(3)
+
+    if installed_ok:
+        play_sound("success")
+        STATE.set_status("success", f"Приложение {base_apk} успешно установлено!")
+        STATE.log(f"🎉 ГОТОВО: {base_apk} успешно установлено на раннюю прошивку ГУ!", "success")
+    else:
+        STATE.set_error("Ошибка установки приложения", f"Не удалось установить APK: {out_inst}", ["Попробуйте повторить установку."])
+
