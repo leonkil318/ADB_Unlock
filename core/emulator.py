@@ -4,17 +4,9 @@
 Эмулятор аппаратного и системного состояния Головного Устройства (ГУ) Geely
 (EX5, E5, Flyme Auto, Ecarx) для тестирования Geely ADB Unlock Master.
 
-Поддерживает все сценарии:
-1) Кабель USB: подключен / отключен (физический линк)
-2) Перемычка: установлена / извлечена
-3) Окно Factory Reset (13-20 сек)
-4) VHAL 557872680: постоянный анлок ADB
-5) Перезагрузка ГУ (sys.boot_completed)
-6) Все 3 профиля прошивок:
-   - Ранняя (< 2.1.4) — жесткий Parrot (/system/etc/security/parrot)
-   - 2.1.4.5 / 2.1.4.6 — Parrot в build.prop, AutoInstallVerifier
-   - 2.2.0 / GMC — без Parrot, dm-verity, scratch-оверлеи, gt_root loop
-7) Виджет переключателя ADB-Toggle (ВКЛ / ВЫКЛ)
+Реализует авторитарный встроенный IPC-сервер (127.0.0.1:динамический порт через .emulator_port):
+Все команды от engine.py и demo_live.py приходят напрямую в эмулятор в реальном времени,
+изменяют состояние памяти и мгновенно отображаются на экране ГУ.
 """
 
 import sys
@@ -24,9 +16,11 @@ import json
 import threading
 import platform
 import re
+import socket
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(BASE_DIR, ".emulator_state.json")
+PORT_FILE = os.path.join(BASE_DIR, ".emulator_port")
 
 # VT100 initialization for Windows
 if platform.system() == "Windows":
@@ -80,11 +74,11 @@ def make_row(content):
 
 class HeadUnitEmulator:
     def __init__(self):
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.running = True
         
         # Hardware link state
-        self.cable_connected = True
+        self.cable_connected = False
         self.jumper_inserted = False
         
         # Firmware profile
@@ -105,8 +99,8 @@ class HeadUnitEmulator:
         self.gt_root_forced = False
         self.trusted_certs = []
         
-        self.last_log = "Эмулятор запущен. Ожидание команд..."
-        self.log_history = []
+        self.last_log = "Стенд инициализирован. Ожидание подключения..."
+        self.log_history = [f"[{time.strftime('%H:%M:%S')}] Стенд ГУ готов к работе."]
         self.save_state()
 
     def get_dict(self):
@@ -114,9 +108,6 @@ class HeadUnitEmulator:
         is_rebooting = now < self.rebooting_until
         in_reset_window = now < self.window_end
         
-        # ADB is open if:
-        # cable is connected AND not rebooting AND
-        # (toggle is active) AND (VHAL is unlocked OR (in reset window AND jumper inserted))
         adb_open = self.cable_connected and not is_rebooting and (
             (self.vhal_unlocked or (in_reset_window and self.jumper_inserted))
             and (not self.toggle_installed or self.toggle_active)
@@ -163,7 +154,7 @@ class HeadUnitEmulator:
         entry = f"[{ts}] {text}"
         self.last_log = entry
         self.log_history.append(entry)
-        if len(self.log_history) > 10:
+        if len(self.log_history) > 15:
             self.log_history.pop(0)
 
     def trigger_factory_reset(self):
@@ -171,10 +162,10 @@ class HeadUnitEmulator:
             now = time.time()
             if self.jumper_inserted:
                 self.window_end = now + self.window_duration
-                self.log(f"⚡ FACTORY RESET! Сервисное окно ADB открыто на {self.window_duration} секунд.")
+                self.log(f"⚡ FACTORY RESET! Окно ADB открыто на {self.window_duration}с.")
             else:
                 self.window_end = 0.0
-                self.log("⚠️ FACTORY RESET: перемычка НЕ установлена! Сервисное окно не открылось (ADB = 0).")
+                self.log("⚠️ FACTORY RESET: перемычки нет! Окно ADB не открылось.")
             self.save_state()
 
     def toggle_jumper(self):
@@ -220,7 +211,7 @@ class HeadUnitEmulator:
             self.mark_remount = False
             self.gt_root_forced = False
             self.trusted_certs = []
-            self.log("Состояние ГУ сброшено к заводскому (ADB закрыт, VHAL заблокирован).")
+            self.log("Состояние ГУ сброшено к заводскому (ADB закрыт, VHAL Locked).")
             self.save_state()
 
     def get_profile_title(self):
@@ -233,19 +224,19 @@ class HeadUnitEmulator:
         return self.profile
 
     def handle_command(self, cmd_data):
-        """Processes virtual ADB command received from engine."""
+        """Processes virtual ADB command received directly via IPC socket."""
         with self.lock:
             now = time.time()
             action = cmd_data.get("action")
             args = cmd_data.get("args", [])
 
-            # 1. No physical cable
+            # 1. Physical cable check
             if not self.cable_connected:
                 if action == "devices":
                     return 0, "List of devices attached\n\n", ""
                 return 1, "", "error: no devices/emulators found\n"
 
-            # 2. Rebooting
+            # 2. Rebooting check
             if now < self.rebooting_until:
                 if action == "devices":
                     return 0, "List of devices attached\nGEELY-EX5-EMULATOR\toffline\n", ""
@@ -253,8 +244,9 @@ class HeadUnitEmulator:
                     return 1, "", "error: device offline\n"
                 return -1, "", "error: device offline\n"
 
-            # 3. Check if ADB port is open
-            is_open = (self.vhal_unlocked or (now < self.window_end and self.jumper_inserted))
+            # 3. ADB port status check
+            in_window = (now < self.window_end and self.jumper_inserted)
+            is_open = (self.vhal_unlocked or in_window)
             if self.toggle_installed and not self.toggle_active:
                 is_open = False
 
@@ -271,10 +263,12 @@ class HeadUnitEmulator:
             if not is_open:
                 return 1, "", "error: device not found (ADB is closed)\n"
 
-            # ADB is OPEN - handle commands
+            # ADB is OPEN - process command
             if action == "root":
                 if self.profile == "2.2.0" and not self.gt_root_forced:
                     return 1, "", "adbd cannot run as root in production builds\n"
+                self.log("ADB ROOT: получен доступ суперпользователя (root)")
+                self.save_state()
                 return 0, "adbd is already running as root\n", ""
 
             if action == "wait-for-device":
@@ -298,6 +292,7 @@ class HeadUnitEmulator:
                 src = args[1] if len(args) > 1 else ""
                 dest = args[2] if len(args) > 2 else ""
                 self.log(f"ADB PUSH: {os.path.basename(src)} ➔ {dest}")
+                self.save_state()
                 return 0, f"1 file pushed: {dest}\n", ""
 
             if action == "install":
@@ -339,7 +334,7 @@ class HeadUnitEmulator:
                 # Force gt_root
                 if "service.adb.root 1" in cmd:
                     self.gt_root_forced = True
-                    self.log("GT_ROOT: активирован service.adb.root 1 (пробит root для 2.2.0)")
+                    self.log("GT_ROOT: service.adb.root 1 активирован (пробит root для 2.2.0)")
                     self.save_state()
                     return 0, "\n", ""
 
@@ -409,13 +404,18 @@ class HeadUnitEmulator:
 
                     self.verifier_disabled = True
                     if self.profile == "early":
+                        self.log("GT-UNLOCK: Ранняя прошивка ➔ перенаправление на Parrot Trust")
+                        self.save_state()
                         return 0, "Проверка подписи Parrot: на этой прошивке она включена всегда и выключателя не имеет\nGT:PARROT\n", ""
 
                     if self.profile == "2.1.4.5":
                         if not self.remounted_rw:
+                            self.log("GT-UNLOCK: Отключение verifier, запрос remount системных разделов")
+                            self.save_state()
                             return 0, "Проверяющий установок (AutoInstallVerifier): выключен\nПроверка подписи Parrot: включена, открываю системные разделы\nGT:REMOUNT\n", ""
                         else:
                             self.parrot_disabled = True
+                            self.log("PARROT: Защита отключена в build.prop (app_verify=false)")
                             self.save_state()
                             return 0, "Проверка подписи Parrot: выключена в файле, нужна перезагрузка\nGT:REBOOT\n", ""
 
@@ -423,10 +423,12 @@ class HeadUnitEmulator:
                         self.scratch_parked = True
                         if not self.mark_remount:
                             self.mark_remount = True
+                            self.log("GT-UNLOCK 2.2.0: Оверлей scratch отодвинут, монтирование оверлея")
                             self.save_state()
                             return 0, "Проверяющий установок (AutoInstallVerifier): нет или уже выключен\nПроверка подписи Parrot: на этой прошивке её нет\nСлой прежней прошивки отодвинут в разделе scratch\nОткрываю системные разделы для нижней панели и медиамоста\nGT:REMOUNT\n", ""
                         else:
                             self.mark_remount = False
+                            self.log("GT-UNLOCK 2.2.0: Системные слои успешно открыты")
                             self.save_state()
                             return 0, "Проверка подписи Parrot: на этой прошивке её нет\nGT:OK\n", ""
 
@@ -559,50 +561,105 @@ def render_ui(emu, is_watch=False):
     sys.stdout.flush()
 
 
-def background_updater(emu):
-    """Refreshes state file and screen timer, syncing external updates from engine."""
+def start_ipc_server(emu):
+    """
+    Direct Loopback Socket Server for real-time synchronization.
+    Binds dynamically to an available port (15555..15575) avoiding TIME_WAIT,
+    and publishes the port to .emulator_port.
+    """
+    server_sock = None
+    for port in range(15555, 15575):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(("127.0.0.1", port))
+            s.listen(10)
+            server_sock = s
+            with open(PORT_FILE, "w", encoding="utf-8") as f:
+                f.write(str(port))
+            break
+        except Exception:
+            continue
+
+    if not server_sock:
+        emu.log("IPC Server bind failed on all ports 15555..15575")
+        return
+
+    server_sock.settimeout(0.2)
     while emu.running:
         try:
-            if os.path.isfile(STATE_FILE):
-                with open(STATE_FILE, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                with emu.lock:
-                    if "cable_connected" in data and data["cable_connected"] != emu.cable_connected:
-                        emu.cable_connected = data["cable_connected"]
-                        s = "ПОДКЛЮЧЕН" if emu.cable_connected else "ОТКЛЮЧЕН"
-                        emu.log(f"USB кабель: {s}")
-                    if "jumper_inserted" in data and data["jumper_inserted"] != emu.jumper_inserted:
-                        emu.jumper_inserted = data["jumper_inserted"]
-                        s = "УСТАНОВЛЕНА" if emu.jumper_inserted else "ИЗВЛЕЧЕНА"
-                        emu.log(f"Аппаратная перемычка: {s}")
-                    if "toggle_active" in data and data["toggle_active"] != emu.toggle_active:
-                        emu.toggle_active = data["toggle_active"]
-                        s = "АКТИВИРОВАН (ADB ON)" if emu.toggle_active else "ОТКЛЮЧЕН (ADB OFF, скрыт для дилера)"
-                        emu.log(f"Виджет ADB Toggle: {s}")
-                    if "profile" in data and data["profile"] != emu.profile:
-                        emu.set_profile(data["profile"])
-                    if data.get("vhal_unlocked") and not emu.vhal_unlocked:
-                        emu.vhal_unlocked = True
-                        emu.log("🎉 VHAL ПРИНЯТ: USB_SWITCH=0 (Постоянный ADB успешно зафиксирован!)")
-                    if data.get("parrot_disabled") and not emu.parrot_disabled:
-                        emu.parrot_disabled = True
-                        emu.log("PARROT: Защита отключена в build.prop (app_verify=false)")
-                    if data.get("verifier_disabled") and not emu.verifier_disabled:
-                        emu.verifier_disabled = True
-                        emu.log("PM DISABLE: AutoInstallVerifier успешно отключен")
-                    if data.get("toggle_installed") and not emu.toggle_installed:
-                        emu.toggle_installed = True
-                        emu.log("APK: Приложение Geely-ADB-Toggle успешно установлено")
-                    if data.get("scratch_parked") and not emu.scratch_parked:
-                        emu.scratch_parked = True
-                        emu.log("SCRATCH: Оверлей прежней прошивки отодвинут (2.2.0)")
-                    if data.get("rebooting_until", 0) > emu.rebooting_until:
-                        emu.rebooting_until = data.get("rebooting_until")
-                        emu.log("REBOOT: ГУ выполняет перезагрузку...")
+            conn, _ = server_sock.accept()
+        except socket.timeout:
+            continue
         except Exception:
-            pass
-        emu.save_state()
-        time.sleep(0.3)
+            break
+
+        try:
+            raw = b""
+            while b"\n" not in raw:
+                chunk = conn.recv(1024)
+                if not chunk:
+                    break
+                raw += chunk
+                
+            if not raw:
+                conn.close()
+                continue
+
+            req = json.loads(raw.decode("utf-8").strip())
+
+            # 1. Action command from demo_live
+            if req.get("type") == "action":
+                action = req.get("action")
+                kwargs = req.get("kwargs", {})
+                with emu.lock:
+                    if action == "cable":
+                        emu.cable_connected = kwargs.get("connected", True)
+                        s_str = "ПОДКЛЮЧЕН" if emu.cable_connected else "ОТКЛЮЧЕН"
+                        emu.log(f"USB кабель: {s_str}")
+                    elif action == "jumper":
+                        emu.jumper_inserted = kwargs.get("inserted", True)
+                        s_str = "УСТАНОВЛЕНА" if emu.jumper_inserted else "ИЗВЛЕЧЕНА"
+                        emu.log(f"Аппаратная перемычка: {s_str}")
+                    elif action == "reset":
+                        emu.trigger_factory_reset()
+                    elif action == "profile":
+                        emu.set_profile(kwargs.get("profile", "2.1.4.5"))
+                    elif action == "reboot":
+                        emu.rebooting_until = time.time() + kwargs.get("duration", 4.0)
+                        emu.remounted_rw = False
+                        emu.gt_root_forced = False
+                        emu.log("REBOOT: ГУ выполняет перезагрузку...")
+                    elif action == "toggle":
+                        emu.toggle_active = kwargs.get("active", True)
+                        s_str = "АКТИВИРОВАН (ADB ON)" if emu.toggle_active else "ОТКЛЮЧЕН (ADB OFF, скрыт для дилера)"
+                        emu.log(f"Виджет ADB Toggle: {s_str}")
+                    elif action == "restart_stand":
+                        emu.reset_to_defaults()
+                        emu.cable_connected = False
+                        emu.jumper_inserted = False
+                        emu.log("Стенд подготовлен к тесту (без кабеля, без перемычки)")
+
+                emu.save_state()
+                conn.sendall(json.dumps({"code": 0, "out": "OK", "err": ""}).encode("utf-8") + b"\n")
+                conn.close()
+                continue
+
+            # 2. Standard ADB command from engine
+            code, out, err = emu.handle_command(req)
+            resp = {"code": code, "out": out, "err": err}
+            conn.sendall(json.dumps(resp).encode("utf-8") + b"\n")
+            conn.close()
+        except Exception:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    try:
+        server_sock.close()
+    except Exception:
+        pass
 
 
 def main():
@@ -610,9 +667,12 @@ def main():
     is_watch = "--watch" in sys.argv or "--demo" in sys.argv
     
     def cleanup():
+        emu.running = False
         sys.stdout.write("\033[?25h")  # Restore cursor
         sys.stdout.flush()
         try:
+            if os.path.isfile(PORT_FILE):
+                os.remove(PORT_FILE)
             if os.path.isfile(STATE_FILE):
                 os.remove(STATE_FILE)
         except Exception:
@@ -621,14 +681,15 @@ def main():
     import atexit
     atexit.register(cleanup)
 
-    t = threading.Thread(target=background_updater, args=(emu,), daemon=True)
-    t.start()
+    # Start live IPC socket server
+    t_ipc = threading.Thread(target=start_ipc_server, args=(emu,), daemon=True)
+    t_ipc.start()
 
     if is_watch:
         try:
             while emu.running:
                 render_ui(emu, is_watch=True)
-                time.sleep(0.2)
+                time.sleep(0.12)
         except KeyboardInterrupt:
             emu.running = False
     else:
@@ -658,7 +719,7 @@ def main():
                 break
 
     cleanup()
-    print("\nЭмулятор остановлен. Файл состояния удален.")
+    print("\nЭмулятор остановлен. Файлы сессии удалены.")
 
 
 if __name__ == "__main__":

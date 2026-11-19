@@ -338,9 +338,44 @@ def _save_emulator_state(state, state_file):
 
 def run_emulator_adb(args):
     """
-    If Head Unit emulator is active (.emulator_state.json exists and fresh),
-    intercepts ADB commands and returns simulated responses.
+    If Head Unit emulator is active (port published in .emulator_port),
+    routes ADB commands directly to the emulator in real time via loopback IPC.
     """
+    port_file = os.path.join(BASE_DIR, ".emulator_port")
+    if not os.path.isfile(port_file):
+        return None
+
+    try:
+        with open(port_file, "r", encoding="utf-8") as f:
+            port = int(f.read().strip())
+    except Exception:
+        return None
+
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.35)
+        s.connect(("127.0.0.1", port))
+        payload = json.dumps({"action": args[0] if args else "", "args": args})
+        s.sendall(payload.encode("utf-8") + b"\n")
+        raw = b""
+        while b"\n" not in raw:
+            chunk = s.recv(1024)
+            if not chunk:
+                break
+            raw += chunk
+        s.close()
+        if raw:
+            data = json.loads(raw.decode("utf-8").strip())
+            return data.get("code", 0), data.get("out", ""), data.get("err", "")
+    except Exception:
+        pass
+
+    return None
+
+
+def _legacy_emulator_fallback(args):
+
     state_file = os.path.join(BASE_DIR, ".emulator_state.json")
     if not os.path.isfile(state_file):
         return None

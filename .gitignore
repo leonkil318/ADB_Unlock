@@ -2,6 +2,7 @@
 core/debug.log
 *.log
 core/.emulator_state.json*
+core/.emulator_port*
 
 # Python
 __pycache__/

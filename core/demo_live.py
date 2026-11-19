@@ -70,8 +70,32 @@ def sleep_with_progress(seconds, label):
     print(f" {C_GREEN}ГОТОВО{C_RESET}")
 
 
+PORT_FILE = os.path.join(BASE_DIR, ".emulator_port")
+
+
 def trigger_emulator_action(action, **kwargs):
-    """Sends action to emulator state file, initializing it if needed."""
+    """Sends action to emulator directly via IPC socket (port from .emulator_port)."""
+    import socket
+    if os.path.isfile(PORT_FILE):
+        try:
+            with open(PORT_FILE, "r", encoding="utf-8") as f:
+                port = int(f.read().strip())
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(0.35)
+            s.connect(("127.0.0.1", port))
+            payload = json.dumps({"type": "action", "action": action, "kwargs": kwargs})
+            s.sendall(payload.encode("utf-8") + b"\n")
+            raw = b""
+            while b"\n" not in raw:
+                chunk = s.recv(1024)
+                if not chunk:
+                    break
+                raw += chunk
+            s.close()
+            return True
+        except Exception:
+            pass
+
     data = {}
     if os.path.isfile(STATE_FILE):
         try:
@@ -311,14 +335,12 @@ def run_demo():
     # ==================== ТЕСТ 10 ====================
     print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 10: Проверка виджета переключателя ADB Toggle (ВКЛ / ВЫКЛ){C_RESET}")
     print("1. Водитель нажимает «Выключить ADB» в шторке ГУ (перед поездкой к дилеру на ТО)...")
-    engine.run_adb(["shell", "toggle_disable"])
     trigger_emulator_action("toggle", active=False)
     time.sleep(2.0)
     print(f"   Статус: {C_YELLOW}ADB выключен и скрыт! Дилерский сканер не увидит модификаций.{C_RESET}")
     time.sleep(2.0)
 
-    print("2. Водитель нажимает «Включить ADB» в шторке ГУ (одной кнопкой без ПК)...")
-    engine.run_adb(["shell", "toggle_enable"])
+    print("2. Водитель нажимает «Включить ADB» в шторке ГУ (одной кнопкой прямо на экране авто)...")
     trigger_emulator_action("toggle", active=True)
     time.sleep(2.0)
     print(f"   Статус: {C_GREEN}ADB снова активен! Установка любых приложений доступна.{C_RESET}")
