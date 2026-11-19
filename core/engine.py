@@ -358,18 +358,25 @@ def run_emulator_adb(args):
         return None
 
     now = time.time()
-    if now - state.get("timestamp", 0) > 15.0:
+    if now - state.get("timestamp", 0) > 60.0:
         return None
 
     action = args[0] if args else ""
     is_rebooting = now < state.get("rebooting_until", 0.0)
     window_end = state.get("window_end", 0.0)
     in_reset_window = (now < window_end) if window_end > 0 else (state.get("in_reset_window", False) and state.get("window_remaining", 0) > 0)
+    cable_ok = state.get("cable_connected", True)
     jumper_ok = state.get("jumper_inserted", True)
     vhal_ok = state.get("vhal_unlocked", False)
-    adb_open = not is_rebooting and (vhal_ok or (in_reset_window and jumper_ok))
+    toggle_ok = state.get("toggle_active", True) if state.get("toggle_installed", False) else True
+    adb_open = cable_ok and not is_rebooting and (vhal_ok or (in_reset_window and jumper_ok)) and toggle_ok
 
     profile = state.get("profile", "2.1.4.5")
+
+    if not cable_ok:
+        if action == "devices":
+            return 0, "List of devices attached\n\n", ""
+        return 1, "", "error: no devices/emulators found"
 
     if action == "devices":
         if not adb_open:
@@ -417,6 +424,16 @@ def run_emulator_adb(args):
 
     if action == "shell":
         cmd = " ".join(args[1:]) if len(args) > 1 else ""
+
+        if "toggle_disable" in cmd or "persist.adb.enable 0" in cmd:
+            state["toggle_active"] = False
+            _save_emulator_state(state, state_file)
+            return 0, "ADB disabled via Toggle", ""
+
+        if "toggle_enable" in cmd or "persist.adb.enable 1" in cmd:
+            state["toggle_active"] = True
+            _save_emulator_state(state, state_file)
+            return 0, "ADB enabled via Toggle", ""
 
         if cmd == "id -u":
             if profile == "2.2.0" and not state.get("gt_root_forced"):
