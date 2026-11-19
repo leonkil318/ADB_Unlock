@@ -1,6 +1,7 @@
-# Runtime logs
+# Runtime logs and emulator state
 core/debug.log
 *.log
+core/.emulator_state.json*
 
 # Python
 __pycache__/

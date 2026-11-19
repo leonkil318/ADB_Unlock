@@ -374,7 +374,7 @@ class HeadUnitEmulator:
             return 0, "", ""
 
 
-def render_ui(emu):
+def render_ui(emu, is_watch=False):
     os.system("cls" if platform.system() == "Windows" else "clear")
     d = emu.get_dict()
     
@@ -422,20 +422,25 @@ def render_ui(emu):
     
     # Actions
     print(f"{C_BOLD}{C_CYAN}╠════════════════════════════════════════════════════════════════════════════════╣{C_RESET}")
-    print(f"{C_BOLD}{C_CYAN}║{C_RESET} УПРАВЛЕНИЕ:                                                                     {C_BOLD}{C_CYAN}║{C_RESET}")
-    print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[R]{C_RESET} Нажать «Сброс настроек» (Factory Reset) ➔ открыть окно ADB на {d['window_duration']}с       {C_BOLD}{C_CYAN}║{C_RESET}")
-    print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[J]{C_RESET} Вставить / Извлечь перемычку                                             {C_BOLD}{C_CYAN}║{C_RESET}")
-    print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[1]{C_RESET} Выбрать прошивку 1: Ранняя (< 2.1.4, жесткий Parrot)                      {C_BOLD}{C_CYAN}║{C_RESET}")
-    print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[2]{C_RESET} Выбрать прошивку 2: 2.1.4.5 / 2.1.4.6 (Parrot в build.prop, Verifier)    {C_BOLD}{C_CYAN}║{C_RESET}")
-    print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[3]{C_RESET} Выбрать прошивку 3: 2.2.0 / GMC (Без Parrot, scratch, gt_root)           {C_BOLD}{C_CYAN}║{C_RESET}")
-    print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[C]{C_RESET} Полный сброс состояния стенда к заводскому                              {C_BOLD}{C_CYAN}║{C_RESET}")
-    print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[Q]{C_RESET} Выход из эмулятора                                                       {C_BOLD}{C_CYAN}║{C_RESET}")
+    if is_watch:
+        print(f"{C_BOLD}{C_CYAN}║{C_RESET} {C_BOLD}{C_GREEN}📺 РЕЖИМ ЖИВОЙ ТРАНСЛЯЦИИ ДЛЯ ВИДЕОЗАПИСИ (Управление тестом справа){C_RESET}          {C_BOLD}{C_CYAN}║{C_RESET}")
+        print(f"{C_BOLD}{C_CYAN}║{C_RESET}  Стенд автоматически обновляет параметры на экране при входящих командах...     {C_BOLD}{C_CYAN}║{C_RESET}")
+    else:
+        print(f"{C_BOLD}{C_CYAN}║{C_RESET} УПРАВЛЕНИЕ:                                                                     {C_BOLD}{C_CYAN}║{C_RESET}")
+        print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[R]{C_RESET} Нажать «Сброс настроек» (Factory Reset) ➔ открыть окно ADB на {d['window_duration']}с       {C_BOLD}{C_CYAN}║{C_RESET}")
+        print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[J]{C_RESET} Вставить / Извлечь перемычку                                             {C_BOLD}{C_CYAN}║{C_RESET}")
+        print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[1]{C_RESET} Выбрать прошивку 1: Ранняя (< 2.1.4, жесткий Parrot)                      {C_BOLD}{C_CYAN}║{C_RESET}")
+        print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[2]{C_RESET} Выбрать прошивку 2: 2.1.4.5 / 2.1.4.6 (Parrot в build.prop, Verifier)    {C_BOLD}{C_CYAN}║{C_RESET}")
+        print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[3]{C_RESET} Выбрать прошивку 3: 2.2.0 / GMC (Без Parrot, scratch, gt_root)           {C_BOLD}{C_CYAN}║{C_RESET}")
+        print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[C]{C_RESET} Полный сброс состояния стенда к заводскому                              {C_BOLD}{C_CYAN}║{C_RESET}")
+        print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_BOLD}[Q]{C_RESET} Выход из эмулятора                                                       {C_BOLD}{C_CYAN}║{C_RESET}")
     print(f"{C_BOLD}{C_CYAN}╠════════════════════════════════════════════════════════════════════════════════╣{C_RESET}")
     print(f"{C_BOLD}{C_CYAN}║{C_RESET} ЖУРНАЛ СОБЫТИЙ:                                                                 {C_BOLD}{C_CYAN}║{C_RESET}")
     for item in emu.log_history[-4:]:
         print(f"{C_BOLD}{C_CYAN}║{C_RESET}  {C_DIM}{item:<77}{C_RESET} {C_BOLD}{C_CYAN}║{C_RESET}")
     print(f"{C_BOLD}{C_CYAN}╚════════════════════════════════════════════════════════════════════════════════╝{C_RESET}")
-    print(f"👉 Введите команду ({C_BOLD}R{C_RESET}=Сброс, {C_BOLD}J{C_RESET}=Перемычка, {C_BOLD}1-3{C_RESET}=Прошивка, {C_BOLD}Q{C_RESET}=Выход) и нажмите Enter: ", end="", flush=True)
+    if not is_watch:
+        print(f"👉 Введите команду ({C_BOLD}R{C_RESET}=Сброс, {C_BOLD}J{C_RESET}=Перемычка, {C_BOLD}1-3{C_RESET}=Прошивка, {C_BOLD}Q{C_RESET}=Выход) и нажмите Enter: ", end="", flush=True)
 
 
 def background_updater(emu):
@@ -471,6 +476,7 @@ def background_updater(emu):
 
 def main():
     emu = HeadUnitEmulator()
+    is_watch = "--watch" in sys.argv or "--demo" in sys.argv
     
     # Clean on exit
     def cleanup():
@@ -486,28 +492,36 @@ def main():
     t = threading.Thread(target=background_updater, args=(emu,), daemon=True)
     t.start()
 
-    while emu.running:
-        render_ui(emu)
+    if is_watch:
         try:
-            cmd = input().strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            break
-
-        if cmd == "r":
-            emu.trigger_factory_reset()
-        elif cmd == "j":
-            emu.toggle_jumper()
-        elif cmd == "1":
-            emu.set_profile("early")
-        elif cmd == "2":
-            emu.set_profile("2.1.4.5")
-        elif cmd == "3":
-            emu.set_profile("2.2.0")
-        elif cmd == "c":
-            emu.reset_to_defaults()
-        elif cmd == "q":
+            while emu.running:
+                render_ui(emu, is_watch=True)
+                time.sleep(0.3)
+        except KeyboardInterrupt:
             emu.running = False
-            break
+    else:
+        while emu.running:
+            render_ui(emu, is_watch=False)
+            try:
+                cmd = input().strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                break
+
+            if cmd == "r":
+                emu.trigger_factory_reset()
+            elif cmd == "j":
+                emu.toggle_jumper()
+            elif cmd == "1":
+                emu.set_profile("early")
+            elif cmd == "2":
+                emu.set_profile("2.1.4.5")
+            elif cmd == "3":
+                emu.set_profile("2.2.0")
+            elif cmd == "c":
+                emu.reset_to_defaults()
+            elif cmd == "q":
+                emu.running = False
+                break
 
     cleanup()
     print("\nЭмулятор остановлен. Файл состояния удален.")

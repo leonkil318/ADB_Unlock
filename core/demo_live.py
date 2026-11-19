@@ -55,14 +55,42 @@ def sleep_with_progress(seconds, label):
 
 
 def trigger_emulator_action(action, **kwargs):
-    """Sends action to emulator state file."""
-    if not os.path.isfile(STATE_FILE):
-        return
+    """Sends action to emulator state file, initializing it if needed."""
+    data = {}
+    if os.path.isfile(STATE_FILE):
+        try:
+            with open(STATE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            pass
+
+    if not data:
+        data = {
+            "active": True,
+            "timestamp": time.time(),
+            "profile": "2.1.4.5",
+            "jumper_inserted": True,
+            "window_duration": 13,
+            "window_end": 0.0,
+            "in_reset_window": False,
+            "adb_open": False,
+            "vhal_unlocked": False,
+            "is_rebooting": False,
+            "reboot_remaining": 0.0,
+            "parrot_disabled": False,
+            "verifier_disabled": False,
+            "toggle_installed": False,
+            "remounted_rw": False,
+            "scratch_parked": False,
+            "mark_remount": False,
+            "gt_root_forced": False,
+            "trusted_certs": [],
+            "last_log": "Демо-стенд готов к работе."
+        }
+
     try:
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        
         now = time.time()
+        data["timestamp"] = now
         if action == "reset":
             duration = kwargs.get("duration", 13)
             data["window_duration"] = duration
