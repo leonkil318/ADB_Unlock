@@ -5,11 +5,14 @@ rem =========================================================
 chcp 65001 >nul
 cd /d "%~dp0"
 
-echo [1/2] Запуск интерактивного стенда Geely...
-wt.exe --title "Geely HU Interactive Stand" -d "%~dp0" cmd /k "chcp 65001 >nul & title Эмулятор ГУ (Стенд) & python emulator.py" ^; split-pane -V -d "%~dp0\.." cmd /k "chcp 65001 >nul & title Geely ADB Unlock Master (Справа) & СТАРТ_Windows.bat"
-if not errorlevel 1 exit /b 0
+echo [1/2] Launching Geely HU Stand in manual mode...
+where wt.exe >nul 2>&1
+if not errorlevel 1 (
+    start wt.exe --title "Geely HU Interactive Stand" -d . cmd /k python emulator.py ^; split-pane -V -d .. cmd /k ..\СТАРТ_Windows.bat
+    exit /b 0
+)
 
-rem Fallback if wt.exe is not available: open 2 separate classic windows
-start "Эмулятор ГУ (Слева)" cmd /k "chcp 65001 >nul & cd /d "%~dp0" & python emulator.py"
-timeout /t 2 /nobreak >nul
-start "Geely ADB Unlock Master (Справа)" cmd /k "chcp 65001 >nul & cd /d "%~dp0\.." & СТАРТ_Windows.bat"
+rem Fallback if wt.exe is not available: open 2 separate windows
+start "Geely HU Emulator (Left)" cmd /k python emulator.py
+timeout /t 1 /nobreak >nul
+start "Geely ADB Unlock Master (Right)" cmd /k cd .. ^& СТАРТ_Windows.bat

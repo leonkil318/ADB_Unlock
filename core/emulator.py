@@ -29,6 +29,7 @@ if platform.system() == "Windows":
         mode = ctypes.c_ulong()
         kernel32.GetConsoleMode(h_out, ctypes.byref(mode))
         kernel32.SetConsoleMode(h_out, mode.value | 0x0004)
+        kernel32.SetConsoleTitleW("Эмулятор ГУ Geely (Стенд)")
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
