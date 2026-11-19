@@ -46,6 +46,7 @@ C_CYAN = "\033[96m"
 C_WHITE = "\033[97m"
 C_BG_RED = "\033[41m"
 C_BG_GREEN = "\033[42m"
+C_BG_YELLOW = "\033[43m"
 C_BG_BLUE = "\033[44m"
 
 
