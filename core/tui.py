@@ -182,7 +182,21 @@ def render_diagnostic_card(state):
         parrot_badge = f"{C_GRAY}[ - ]{C_RESET}"
         verifier_badge = f"{C_GRAY}[ - ]{C_RESET}"
 
-    title_str = "┌─ СТАТУС ПОДКЛЮЧЕНИЯ И ДИАГНОСТИКА "
+    emu_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".emulator_state.json")
+    emu_info = ""
+    if os.path.isfile(emu_file):
+        try:
+            with open(emu_file, "r", encoding="utf-8") as f:
+                ed = json.load(f)
+            if ed.get("active") and time.time() - ed.get("timestamp", 0) < 15.0:
+                emu_info = f"🧪 СТЕНД-ЭМУЛЯТОР: {ed.get('profile', '')}"
+        except Exception:
+            pass
+
+    if emu_info:
+        title_str = f"┌─ СТАТУС ({emu_info}) "
+    else:
+        title_str = "┌─ СТАТУС ПОДКЛЮЧЕНИЯ И ДИАГНОСТИКА "
     dash_count = max(2, W - visible_len(title_str) - 1)
     print(f"{C_CYAN}{title_str}{'─' * dash_count}┐{C_RESET}")
 

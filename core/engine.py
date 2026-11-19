@@ -6,6 +6,7 @@ and unlock workflows across Windows, macOS, and Linux without external dependenc
 
 import sys
 import os
+import json
 import platform
 import subprocess
 import threading
@@ -325,8 +326,207 @@ def locate_or_download_adb():
     return None
 
 
+def _save_emulator_state(state, state_file):
+    try:
+        tmp = state_file + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, state_file)
+    except Exception:
+        pass
+
+
+def run_emulator_adb(args):
+    """
+    If Head Unit emulator is active (.emulator_state.json exists and fresh),
+    intercepts ADB commands and returns simulated responses.
+    """
+    state_file = os.path.join(BASE_DIR, ".emulator_state.json")
+    if not os.path.isfile(state_file):
+        return None
+
+    state = None
+    for _ in range(3):
+        try:
+            with open(state_file, "r", encoding="utf-8") as f:
+                state = json.load(f)
+            break
+        except Exception:
+            time.sleep(0.03)
+
+    if not state or not state.get("active"):
+        return None
+
+    now = time.time()
+    if now - state.get("timestamp", 0) > 15.0:
+        return None
+
+    action = args[0] if args else ""
+    is_rebooting = now < state.get("rebooting_until", 0.0)
+    window_end = state.get("window_end", 0.0)
+    in_reset_window = (now < window_end) if window_end > 0 else (state.get("in_reset_window", False) and state.get("window_remaining", 0) > 0)
+    jumper_ok = state.get("jumper_inserted", True)
+    vhal_ok = state.get("vhal_unlocked", False)
+    adb_open = not is_rebooting and (vhal_ok or (in_reset_window and jumper_ok))
+
+    profile = state.get("profile", "2.1.4.5")
+
+    if action == "devices":
+        if not adb_open:
+            return 0, "List of devices attached\n\n", ""
+        return 0, "List of devices attached\nGEELY-EX5-EMULATOR\tdevice\n", ""
+
+    if action == "get-state":
+        if is_rebooting:
+            return 1, "", "error: device offline"
+        if not adb_open:
+            return 1, "", "error: no devices/emulators found"
+        return 0, "device", ""
+
+    if not adb_open:
+        return 1, "", "error: device not found (ADB is closed)"
+
+    if action == "root":
+        if profile == "2.2.0" and not state.get("gt_root_forced"):
+            return 1, "", "adbd cannot run as root in production builds"
+        return 0, "adbd is already running as root", ""
+
+    if action == "wait-for-device":
+        return 0, "", ""
+
+    if action == "remount":
+        state["remounted_rw"] = True
+        _save_emulator_state(state, state_file)
+        return 0, "remount succeeded", ""
+
+    if action == "reboot":
+        state["rebooting_until"] = now + 4.0
+        state["remounted_rw"] = False
+        state["gt_root_forced"] = False
+        _save_emulator_state(state, state_file)
+        return 0, "", ""
+
+    if action == "push":
+        dest = args[2] if len(args) > 2 else ""
+        return 0, f"1 file pushed: {dest}", ""
+
+    if action == "install":
+        state["toggle_installed"] = True
+        _save_emulator_state(state, state_file)
+        return 0, "Success", ""
+
+    if action == "shell":
+        cmd = " ".join(args[1:]) if len(args) > 1 else ""
+
+        if cmd == "id -u":
+            if profile == "2.2.0" and not state.get("gt_root_forced"):
+                return 0, "2000", ""
+            return 0, "0", ""
+
+        if "service.adb.root 1" in cmd:
+            state["gt_root_forced"] = True
+            _save_emulator_state(state, state_file)
+            return 0, "", ""
+
+        if cmd.startswith("getprop ro.product.model"):
+            return 0, "Geely EX5 EM-i", ""
+
+        if cmd.startswith("getprop ro.build.display.id"):
+            if profile == "early":
+                return 0, "FlymeAuto-2.1.0-e245", ""
+            elif profile == "2.1.4.5":
+                return 0, "FlymeAuto-2.1.4.5-e245_eu", ""
+            return 0, "FlymeAuto-2.2.0-GMC-p145", ""
+
+        if cmd.startswith("getprop ro.vendor.ecarx.app_verify"):
+            if profile in ["early", "2.2.0"]:
+                return 0, "", ""
+            return 0, "false" if state.get("parrot_disabled") else "true", ""
+
+        if cmd.startswith("getprop ro.boot.veritymode"):
+            return 0, "enforcing" if profile == "2.2.0" else "disabled", ""
+
+        if cmd.startswith("getprop sys.boot_completed"):
+            if now < state.get("rebooting_until", 0.0):
+                return 0, "0", ""
+            return 0, "1", ""
+
+        if "[ -d /system/etc/security/parrot ]" in cmd:
+            has_dir = profile in ["early", "2.1.4.5"]
+            return 0, "1" if has_dir else "0", ""
+
+        if "557872680" in cmd:
+            if profile == "2.2.0" and not state.get("gt_root_forced"):
+                return 1, "Must be root to access vehicle HAL", ""
+            if not jumper_ok:
+                return 1, "VHAL: Jumper not detected, hardware strap missing", ""
+            state["vhal_unlocked"] = True
+            _save_emulator_state(state, state_file)
+            return 0, "Set property: 557872680 to i: 0 a: 0", ""
+
+        if "pm list packages -e" in cmd:
+            if state.get("verifier_disabled"):
+                return 0, "", ""
+            return 0, "package:com.ecarx.xsfinstallverifier", ""
+
+        if "pm list packages" in cmd:
+            pkgs = ["package:com.android.settings", "package:com.ecarx.system"]
+            if state.get("toggle_installed"):
+                pkgs.append("package:com.yahooeu2k.ex5.adbtoggle")
+            return 0, "\n".join(pkgs), ""
+
+        if "pm disable-user" in cmd and "com.ecarx.xsfinstallverifier" in cmd:
+            state["verifier_disabled"] = True
+            _save_emulator_state(state, state_file)
+            return 0, "Package com.ecarx.xsfinstallverifier new state: disabled-user", ""
+
+        if "gt-unlock.sh" in cmd:
+            if "rescue" in cmd:
+                state["scratch_parked"] = True
+                _save_emulator_state(state, state_file)
+                return 0, "GT:REBOOT", ""
+
+            state["verifier_disabled"] = True
+            if profile == "early":
+                _save_emulator_state(state, state_file)
+                return 0, "Проверка подписи Parrot: на этой прошивке она включена всегда и выключателя не имеет\nGT:PARROT", ""
+
+            if profile == "2.1.4.5":
+                if not state.get("remounted_rw"):
+                    _save_emulator_state(state, state_file)
+                    return 0, "Проверяющий установок (AutoInstallVerifier): выключен\nПроверка подписи Parrot: включена, открываю системные разделы\nGT:REMOUNT", ""
+                else:
+                    state["parrot_disabled"] = True
+                    _save_emulator_state(state, state_file)
+                    return 0, "Проверка подписи Parrot: выключена в файле, нужна перезагрузка\nGT:REBOOT", ""
+
+            if profile == "2.2.0":
+                state["scratch_parked"] = True
+                if not state.get("mark_remount"):
+                    state["mark_remount"] = True
+                    _save_emulator_state(state, state_file)
+                    return 0, "Проверяющий установок (AutoInstallVerifier): нет или уже выключен\nПроверка подписи Parrot: на этой прошивке её нет\nСлой прежней прошивки отодвинут в разделе scratch\nОткрываю системные разделы для нижней панели и медиамоста\nGT:REMOUNT", ""
+                else:
+                    state["mark_remount"] = False
+                    _save_emulator_state(state, state_file)
+                    return 0, "Проверка подписи Parrot: на этой прошивке её нет\nGT:OK", ""
+
+        if "/system/etc/security/parrot/" in cmd:
+            _save_emulator_state(state, state_file)
+            return 0, "", ""
+
+        return 0, "", ""
+
+    return 0, "", ""
+
+
 def run_adb(args, timeout=30):
     """Executes an adb command safely without opening popup windows and with robust UTF-8 encoding."""
+    # 0. Check virtual stand emulator
+    emu_res = run_emulator_adb(args)
+    if emu_res is not None:
+        return emu_res
+
     if not STATE.adb_path or not os.path.isfile(STATE.adb_path):
         locate_or_download_adb()
         if not STATE.adb_path:
