@@ -284,8 +284,8 @@ def render_menu(state):
 
     print_menu_item(f"{C_WHITE}[2]{C_RESET} Открыть ADB с нуля (Фиксация порта через перемычку + сброс ГУ)")
     print_menu_item(f"{C_WHITE}[3]{C_RESET} Проверить статус ГУ (Диагностика связи и состояния блокировок)")
-    print_menu_item(f"{C_WHITE}[4]{C_RESET} Открыть GeelyTune в браузере (твики и помощник ГУ)")
-    print_menu_item(f"{C_GREEN}{C_BOLD}[5] Открыть магазин EX5 Apps (установка софта через браузер от @wingus){C_RESET}")
+    print_menu_item(f"{C_GREEN}{C_BOLD}[4] Открыть GeelyTune в браузере (твики и помощник ГУ){C_RESET}")
+    print_menu_item(f"{C_WHITE}[5]{C_RESET} Открыть магазин EX5 Apps (установка софта через браузер от @wingus)")
     print_menu_item(f"{C_WHITE}[6]{C_RESET} Перезапустить службу ADB (Очистить зависшие процессы)")
     sound_badge = f"{C_GREEN}[ ВКЛ ]{C_RESET}" if is_sound_enabled() else f"{C_GRAY}[ ВЫКЛ ]{C_RESET}"
     print_menu_item(f"{C_WHITE}[7]{C_RESET} Звуковые эффекты: {sound_badge}")
