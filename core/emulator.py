@@ -72,6 +72,35 @@ def make_row(content):
     return f"{C_BOLD}{C_CYAN}║{C_RESET} {pad_line(content, 78)} {C_BOLD}{C_CYAN}║{C_RESET}"
 
 
+
+def setup_split_window(side="left"):
+    """Positions console window for 50/50 split screen on Windows."""
+    if platform.system() != "Windows":
+        return
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        user32 = ctypes.windll.user32
+        hwnd = kernel32.GetConsoleWindow()
+        if not hwnd:
+            return
+        r = (ctypes.c_long * 4)()
+        # SPI_GETWORKAREA = 0x0030
+        user32.SystemParametersInfoW(0x0030, 0, ctypes.byref(r), 0)
+        x_start = r[0]
+        y_start = r[1]
+        w_total = r[2] - r[0]
+        h_total = r[3] - r[1]
+        half_w = w_total // 2
+        user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+        if side == "left":
+            user32.MoveWindow(hwnd, x_start, y_start, half_w, h_total, True)
+        else:
+            user32.MoveWindow(hwnd, x_start + half_w, y_start, w_total - half_w, h_total, True)
+    except Exception:
+        pass
+
+
 class HeadUnitEmulator:
     def __init__(self):
         self.lock = threading.RLock()
@@ -214,13 +243,14 @@ class HeadUnitEmulator:
             self.log("Состояние ГУ сброшено к заводскому (ADB закрыт, VHAL Locked).")
             self.save_state()
 
+
     def get_profile_title(self):
         if self.profile == "early":
-            return "Ранняя (< 2.1.4, жесткий Parrot в /system)"
+            return "Ранняя ~2.1.3 (Маска T1.0.0, жесткий Parrot)"
         elif self.profile == "2.1.4.5":
-            return "2.1.4.5 / 2.1.4.6 (Parrot в build.prop, Verifier)"
+            return "2.1.4.5+ (Маска T1.0.0, значки климата)"
         elif self.profile == "2.2.0":
-            return "2.2.0 / GMC (Без Parrot, verity, scratch, gt_root)"
+            return "2.2.0 / GMC (Маска T1.0.0, лимит скорости)"
         return self.profile
 
     def handle_command(self, cmd_data):
@@ -302,7 +332,7 @@ class HeadUnitEmulator:
                     self.toggle_installed = True
                     self.toggle_active = True
                     self.log(f"ADB INSTALL: Установлено приложение {pkg}")
-                elif "parrot" in self.profile or self.parrot_disabled or self.profile == "2.2.0":
+                elif "parrot" in self.profile or self.parrot_disabled or self.profile == "2.2.0" or len(self.trusted_certs) > 0:
                     self.log(f"ADB INSTALL: Успешно установлен APK {pkg}")
                 else:
                     return 1, "", "Failure [INSTALL_FAILED_VERIFICATION_FAILURE: failed to verify against Parrot certificates]\n"
@@ -500,12 +530,15 @@ def render_ui(emu, is_watch=False):
 
     # Protections
     if emu.profile == "2.1.4.5":
+        visual_cue = f"{C_YELLOW}Мини-значки климата внизу (обдув лобового){C_RESET}"
         p_stat = f"{C_GREEN}СНЯТА (app_verify=false){C_RESET}" if d["parrot_disabled"] else f"{C_RED}АКТИВНА (app_verify=true){C_RESET}"
         overlay_stat = f"{C_DIM}НЕ ТРЕБУЕТСЯ В 2.1.4{C_RESET}"
     elif emu.profile == "2.2.0":
+        visual_cue = f"{C_YELLOW}Пункт «Лимит скорости» в меню ГУ (нет Parrot){C_RESET}"
         p_stat = f"{C_GREEN}ОТСУТСТВУЕТ В 2.2.0{C_RESET}"
         overlay_stat = f"{C_GREEN}ОБОЙДЕН (scratch-паркован){C_RESET}" if d["scratch_parked"] else f"{C_RED}АКТИВЕН (dm-verity RO){C_RESET}"
     else:  # early
+        visual_cue = f"{C_YELLOW}Классический UI (нет лимита, Parrot в ядре){C_RESET}"
         p_stat = f"{C_GREEN}ОБОЙДЕНА (Parrot Trust инъекция){C_RESET}" if d["trusted_certs"] else f"{C_RED}ЖЕСТКАЯ (Вшита в ядро){C_RESET}"
         overlay_stat = f"{C_DIM}НЕ ТРЕБУЕТСЯ{C_RESET}"
 
@@ -523,6 +556,7 @@ def render_ui(emu, is_watch=False):
         f"{C_BOLD}{C_CYAN}║             ЭМУЛЯТОР ГОЛОВНОГО УСТРОЙСТВА GEELY (STAND HU)                     ║{C_RESET}",
         f"{C_BOLD}{C_CYAN}╠════════════════════════════════════════════════════════════════════════════════╣{C_RESET}",
         make_row(f"Прошивка:       {C_BOLD}{C_WHITE}{p_name}{C_RESET}"),
+        make_row(f"Ориентир UI:    {visual_cue}"),
         make_row(f"Кабель USB:     {cable_badge}"),
         make_row(f"Перемычка:      {j_badge}"),
         make_row(f"Статус ADB:     {adb_badge}"),
@@ -665,6 +699,9 @@ def start_ipc_server(emu):
 def main():
     emu = HeadUnitEmulator()
     is_watch = "--watch" in sys.argv or "--demo" in sys.argv
+    if is_watch or "--split" in sys.argv or "--side" in sys.argv:
+        side = "right" if "--right" in sys.argv else "left"
+        setup_split_window(side)
     
     def cleanup():
         emu.running = False

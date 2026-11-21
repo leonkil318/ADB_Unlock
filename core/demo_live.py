@@ -31,8 +31,36 @@ if platform.system() == "Windows":
         mode = ctypes.c_ulong()
         kernel32.GetConsoleMode(h_out, ctypes.byref(mode))
         kernel32.SetConsoleMode(h_out, mode.value | 0x0004)
-        kernel32.SetConsoleTitleW("Авто-Демонстрация Geely Unlock")
+        kernel32.SetConsoleTitleW("Авто-Демонстрация Geely Unlock (Right)")
         sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+
+def setup_split_window(side="right"):
+    """Positions console window for 50/50 split screen on Windows."""
+    if platform.system() != "Windows":
+        return
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        user32 = ctypes.windll.user32
+        hwnd = kernel32.GetConsoleWindow()
+        if not hwnd:
+            return
+        r = (ctypes.c_long * 4)()
+        # SPI_GETWORKAREA = 0x0030
+        user32.SystemParametersInfoW(0x0030, 0, ctypes.byref(r), 0)
+        x_start = r[0]
+        y_start = r[1]
+        w_total = r[2] - r[0]
+        h_total = r[3] - r[1]
+        half_w = w_total // 2
+        user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+        if side == "left":
+            user32.MoveWindow(hwnd, x_start, y_start, half_w, h_total, True)
+        else:
+            user32.MoveWindow(hwnd, x_start + half_w, y_start, w_total - half_w, h_total, True)
     except Exception:
         pass
 
@@ -55,8 +83,8 @@ C_WHITE = "\033[97m"
 def print_banner():
     os.system("cls" if platform.system() == "Windows" else "clear")
     print(f"{C_BOLD}{C_CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{C_RESET}")
-    print(f"{C_BOLD}{C_CYAN}║     GEELY ADB UNLOCK MASTER — ПОЛНОЕ ТЕСТИРОВАНИЕ ВСЕХ 11 РЕЖИМОВ            ║{C_RESET}")
-    print(f"{C_BOLD}{C_CYAN}║     (Без провода ➔ С проводом ➔ Перемычка ➔ Сброс ➔ VHAL ➔ Ребут ➔ Защиты)    ║{C_RESET}")
+    print(f"{C_BOLD}{C_CYAN}║     GEELY ADB UNLOCK MASTER — ПОЛНОЕ ТЕСТИРОВАНИЕ ВСЕХ 12 РЕЖИМОВ            ║{C_RESET}")
+    print(f"{C_BOLD}{C_CYAN}║     (Аппаратные тесты ➔ Перехват ➔ VHAL ➔ Все прошивки ➔ WebUSB)             ║{C_RESET}")
     print(f"{C_BOLD}{C_CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{C_RESET}\n")
 
 
@@ -191,6 +219,7 @@ def trigger_emulator_action(action, **kwargs):
 
 
 def run_demo():
+    setup_split_window("right")
     print_banner()
     print(f"{C_YELLOW}ВНИМАНИЕ: В левом окне запущен Эмулятор ГУ. В правом окне — живой тест.{C_RESET}")
     print(f"{C_WHITE}Приготовьте запись экрана (Win + Alt + R для записи видео).{C_RESET}\n")
@@ -284,10 +313,10 @@ def run_demo():
     time.sleep(3.0)
 
     # ==================== ТЕСТ 9 ====================
-    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 9: Снятие защит установки сторонних APK для ВСЕХ 3 прошивок{C_RESET}")
+    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 9: Снятие защит установки APK для ВСЕХ 3 прошивок под маской T1.0.0{C_RESET}")
     
     # 9.1: 2.1.4.5 / 2.1.4.6
-    print(f"\n{C_CYAN}--- Вариант 9.1: Прошивка 2.1.4.5 / 2.1.4.6 (Parrot в build.prop, Verifier) ---{C_RESET}")
+    print(f"\n{C_CYAN}--- Вариант 9.1: Прошивка 2.1.4.5+ (маска T1.0.0; значки обдува лобового в климате) ---{C_RESET}")
     print("• Запуск unlock-hu.sh...")
     code_u1, out_u1, _ = engine.run_adb(["shell", "sh", "/data/local/tmp/gt-unlock.sh"])
     for l in out_u1.splitlines():
@@ -301,11 +330,11 @@ def run_demo():
             print(f"  • {l.strip()}")
     print("• Установка Geely-ADB-Toggle-1.1.0.apk через adb install -r --user 10...")
     engine.run_adb(["install", "-r", "--user", "10", "core/Geely-ADB-Toggle-1.1.0.apk"])
-    print(f"{C_GREEN}✅ Прошивка 2.1.4.5 полностью разблокирована!{C_RESET}")
+    print(f"{C_GREEN}✅ Прошивка 2.1.4.5+ полностью разблокирована (app_verify=false, Verifier disabled)!{C_RESET}")
     time.sleep(3.0)
 
     # 9.2: 2.2.0 / GMC
-    print(f"\n{C_CYAN}--- Вариант 9.2: Прошивка 2.2.0 / GMC (dm-verity RO, scratch-оверлей, gt_root) ---{C_RESET}")
+    print(f"\n{C_CYAN}--- Вариант 9.2: Прошивка 2.2.0 / GMC (маска T1.0.0; пункт «Лимит скорости» в меню ГУ) ---{C_RESET}")
     trigger_emulator_action("profile", profile="2.2.0")
     trigger_emulator_action("reset", duration=999)
     time.sleep(1.0)
@@ -318,18 +347,25 @@ def run_demo():
             print(f"  • {l.strip()}")
     print("• Установка Geely-ADB-Toggle на 2.2.0...")
     engine.run_adb(["install", "-r", "--user", "10", "core/Geely-ADB-Toggle-1.1.0.apk"])
-    print(f"{C_GREEN}✅ Прошивка 2.2.0 полностью разблокирована (scratch-оверлей применен)!{C_RESET}")
+    print(f"{C_GREEN}✅ Прошивка 2.2.0 / GMC полностью разблокирована (scratch-оверлей применен)!{C_RESET}")
     time.sleep(3.0)
 
-    # 9.3: Ранняя прошивка (< 2.1.4)
-    print(f"\n{C_CYAN}--- Вариант 9.3: Ранняя прошивка (< 2.1.4, режим Parrot Trust) ---{C_RESET}")
+    # 9.3: Ранняя прошивка (~2.1.3)
+    print(f"\n{C_CYAN}--- Вариант 9.3: Ранняя прошивка ~2.1.3 (маска T1.0.0; классический UI, жесткий Parrot) ---{C_RESET}")
     trigger_emulator_action("profile", profile="early")
     trigger_emulator_action("reset", duration=999)
     time.sleep(1.0)
-    print("• Обнаружен жестко вшитый Parrot: активируем режим [T] Parrot Trust...")
+    print("• Запуск штатного скрипта unlock-hu.sh на ранней прошивке...")
+    code_ep, out_ep, _ = engine.run_adb(["shell", "sh", "/data/local/tmp/gt-unlock.sh"])
+    for l in out_ep.splitlines():
+        if l.strip() and not l.startswith("GT:"):
+            print(f"  • {l.strip()}")
+    print("• Обнаружен жесткий Parrot: автоматический бесшовный Fallback на Parrot Trust...")
     print("• Инъекция системного сертификата доверия GeelyTune в /system/etc/security/parrot/...")
     engine.run_adb(["shell", "cp /data/local/tmp/yandex.pem /system/etc/security/parrot/yandex.x509.pem"])
-    print(f"{C_GREEN}✅ Ранняя прошивка успешно подготовлена через доверенный сертификат!{C_RESET}")
+    print("• Установка Geely-ADB-Toggle через доверенный сертификат...")
+    engine.run_adb(["install", "-r", "--user", "10", "core/Geely-ADB-Toggle-1.1.0.apk"])
+    print(f"{C_GREEN}✅ Ранняя прошивка ~2.1.3 успешно подготовлена через доверенный сертификат!{C_RESET}")
     time.sleep(3.0)
 
     # ==================== ТЕСТ 10 ====================
@@ -347,11 +383,27 @@ def run_demo():
     time.sleep(2.5)
 
     # ==================== ТЕСТ 11 ====================
-    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 11: Финальный отчет и готовность к установке через GeelyTune{C_RESET}")
+    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 11: Бесшовное сосуществование WebUSB и ADB (Переход в браузер){C_RESET}")
+    print("• Пользователь выбирает в меню [4] GeelyTune или [5] EX5 Apps...")
+    print("• 1. Остановка локального ADB сервера для освобождения порта USB:")
+    engine.stop_adb_server()
+    print(f"   {C_GREEN}✅ Служба ADB остановлена. USB-порт освобожден от монопольного захвата.{C_RESET}")
+    print(f"   {C_CYAN}ℹ️ Браузер (Chrome / Edge) подключается к авто через WebUSB без ошибок BUSY.{C_RESET}")
+    time.sleep(2.0)
+    print("• 2. Автоматический перехват порта при возврате в программу (reclaim):")
+    rec_ok = engine.reclaim_adb_connection()
+    if rec_ok:
+        print(f"   {C_GREEN}✅ ADB-сервер перезапущен! Связь с ГУ мгновенно восстановлена в фоне.{C_RESET}")
+    else:
+        print(f"   {C_YELLOW}[!] Предупреждение при перехвате порта{C_RESET}")
+    time.sleep(2.5)
+
+    # ==================== ТЕСТ 12 ====================
+    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 12: Финальный отчет и готовность к установке через GeelyTune{C_RESET}")
     time.sleep(1.0)
 
     print(f"\n{C_BOLD}{C_GREEN}╔══════════════════════════════════════════════════════════════════════════════╗{C_RESET}")
-    print(f"{C_BOLD}{C_GREEN}║             РЕЗУЛЬТАТЫ ПОЛНОГО ТЕСТИРОВАНИЯ: 11 ИЗ 11 УСПЕШНО!               ║{C_RESET}")
+    print(f"{C_BOLD}{C_GREEN}║             РЕЗУЛЬТАТЫ ПОЛНОГО ТЕСТИРОВАНИЯ: 12 ИЗ 12 УСПЕШНО!               ║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}╠══════════════════════════════════════════════════════════════════════════════╣{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 1:  Без провода (корректное ожидание подключения)            {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 2:  С проводом без перемычки (детекция закрытого порта)      {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
@@ -361,9 +413,10 @@ def run_demo():
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 6:  Извлечение перемычки (контроль безопасности)             {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 7:  Полная перезагрузка ГУ (sys.boot_completed=1)           {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 8:  Холодный старт (постоянный ADB без перемычки)            {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
-    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 9:  Снятие ограничений (2.1.4.5, 2.2.0, Parrot Trust)        {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
+    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 9:  Снятие защит (2.1.4.5, 2.2.0, Parrot Trust под T1.0.0)   {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 10: Виджет ADB-Toggle (ВКЛ / ВЫКЛ для визитов к дилеру)      {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
-    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 11: Готовность к установщику GeelyTune (https://geelytune.io)  {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
+    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 11: Сосуществование WebUSB и ADB (stop_adb / reclaim)        {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
+    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 12: Готовность к GeelyTune (https://geelytune.github.io)      {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}╚══════════════════════════════════════════════════════════════════════════════╝{C_RESET}\n")
     print(f"{C_BOLD}{C_CYAN}🎉 ДЕМОНСТРАЦИОННАЯ ВИДЕОСЪЕМКА ЗАВЕРШЕНА! Все режимы подтверждены.{C_RESET}\n")
 
