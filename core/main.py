@@ -56,7 +56,15 @@ from sound import toggle_sound, play_sound
 def safe_input(prompt, default=""):
     try:
         return input(prompt)
-    except (KeyboardInterrupt, EOFError):
+    except EOFError:
+        if platform.system() == "Windows":
+            try:
+                sys.stdin = open("CONIN$", "r", encoding="utf-8", errors="replace")
+                return input(prompt)
+            except Exception:
+                pass
+        return default
+    except KeyboardInterrupt:
         return default
 
 
@@ -332,7 +340,7 @@ def main():
         render_menu(STATE)
         render_recent_logs(STATE, count=4)
 
-        choice = safe_input(f"\n{C_CYAN}{C_BOLD}Выберите пункт меню [0-8, T - Parrot Trust, S - Звук, ? - Справка] > {C_RESET}", default="0").strip()
+        choice = safe_input(f"\n{C_CYAN}{C_BOLD}Выберите пункт меню [0-8, T - Parrot Trust, S - Звук, ? - Справка] > {C_RESET}", default="").strip()
 
         if choice == "1":
             play_sound("step")
@@ -366,7 +374,10 @@ def main():
         elif choice == "6":
             play_sound("step")
             run_interactive_task(STATE, kill_adb_processes, "Перезапуск службы ADB")
-            check_devices()
+            try:
+                check_devices()
+            except Exception as e:
+                STATE.log(f"Ошибка проверки устройств: {e}", "warning")
         elif choice.lower() in ["t", "е", "trust"]:
             play_sound("step")
             run_parrot_trust_wizard()
@@ -378,14 +389,28 @@ def main():
             play_sound("step")
             render_help_screen()
         elif choice in ["0", "q", "exit", "quit"]:
-            play_sound("step")
-            stop_adb_server()
-            render_exit_screen(seconds=5)
-            break
+            conf = safe_input(f"\n{C_YELLOW}Подтвердите выход из программы [0 - Выйти, Enter / 1 - Остаться в меню] > {C_RESET}", default="1").strip()
+            if conf in ["0", "y", "yes", "д", "да"]:
+                play_sound("step")
+                stop_adb_server()
+                render_exit_screen(seconds=3)
+                break
+            else:
+                continue
         else:
             time.sleep(0.2)
 
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        print(f"\n\033[91m[!] КРИТИЧЕСКАЯ ОШИБКА ПРИЛОЖЕНИЯ:\033[0m {e}")
+        traceback.print_exc()
+        print("\nНажмите Enter для выхода...")
+        try:
+            input()
+        except Exception:
+            pass

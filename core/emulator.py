@@ -260,6 +260,10 @@ class HeadUnitEmulator:
             action = cmd_data.get("action")
             args = cmd_data.get("args", [])
 
+            # Daemon control commands
+            if action in ["start-server", "kill-server"]:
+                return 0, "", ""
+
             # 1. Physical cable check
             if not self.cable_connected:
                 if action == "devices":

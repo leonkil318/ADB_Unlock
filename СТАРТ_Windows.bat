@@ -11,18 +11,33 @@ title Geely ADB Unlock Master
 
 if exist "core\geely_unlock.exe" (
     "core\geely_unlock.exe"
+    if errorlevel 1 (
+        echo.
+        echo [!] Application terminated with error. Press any key to close...
+        pause >nul
+    )
     exit /b 0
 )
 
 where python >nul 2>&1
 if not errorlevel 1 (
     python "core\main.py"
+    if errorlevel 1 (
+        echo.
+        echo [!] Application terminated with error. Press any key to close...
+        pause >nul
+    )
     exit /b 0
 )
 
 where py >nul 2>&1
 if not errorlevel 1 (
     py "core\main.py"
+    if errorlevel 1 (
+        echo.
+        echo [!] Application terminated with error. Press any key to close...
+        pause >nul
+    )
     exit /b 0
 )
 

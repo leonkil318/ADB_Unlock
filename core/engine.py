@@ -589,6 +589,7 @@ def run_adb(args, timeout=30):
         creationflags = 0x08000000 if STATE.os_name == "windows" else 0
         proc = subprocess.run(
             cmd,
+            stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             encoding="utf-8",
@@ -607,10 +608,15 @@ def kill_adb_processes():
     """Kills conflicting adb server processes to free the port and restarts daemon."""
     STATE.log("Очищаем зависшие процессы ADB в системе...", "cmd")
     try:
+        if STATE.adb_path and os.path.isfile(STATE.adb_path):
+            subprocess.run([STATE.adb_path, "kill-server"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+    except Exception:
+        pass
+    try:
         if STATE.os_name == "windows":
-            subprocess.run(["taskkill", "/F", "/IM", "adb.exe"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(["taskkill", "/F", "/IM", "adb.exe"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         else:
-            subprocess.run(["killall", "-9", "adb"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(["killall", "-9", "adb"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
         pass
     time.sleep(1)
@@ -628,14 +634,14 @@ def stop_adb_server():
     STATE.log("Останавливаем службу ADB для освобождения USB-разъёма...", "cmd")
     try:
         if STATE.adb_path and os.path.isfile(STATE.adb_path):
-            subprocess.run([STATE.adb_path, "kill-server"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+            subprocess.run([STATE.adb_path, "kill-server"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
     except Exception:
         pass
     try:
         if STATE.os_name == "windows":
-            subprocess.run(["taskkill", "/F", "/IM", "adb.exe"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(["taskkill", "/F", "/IM", "adb.exe"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         else:
-            subprocess.run(["killall", "-9", "adb"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(["killall", "-9", "adb"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
         pass
     STATE.device_state = "disconnected"
