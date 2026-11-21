@@ -398,9 +398,10 @@ def run_demo():
     time.sleep(2.5)
 
     # ==================== ТЕСТ 12 ====================
-    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 12: Завершение работ — Выключение ГУ и извлечение перемычки{C_RESET}")
+    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 12: Завершение работ — Выключение питания ГУ и извлечение перемычки{C_RESET}")
     print("• 1. Настройка в GeelyTune и установка приложений полностью завершены.")
-    print(f"• 2. {C_YELLOW}Водитель полностью глушит авто (выключает зажигание, ГУ гаснет)...{C_RESET}")
+    print(f"• 2. {C_YELLOW}Водитель выключает питание через меню ГУ (выдержка 1 мин, экран гаснет)...{C_RESET}")
+    print("• (Для включения питания авто во время настройки нажимается кратковременно тормоз).")
     time.sleep(1.5)
     print(f"• 3. {C_GREEN}Аккуратно извлекаем сервисную перемычку из разъёма обесточенного ГУ!{C_RESET}")
     trigger_emulator_action("jumper", inserted=False)
@@ -422,7 +423,7 @@ def run_demo():
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 9:  Снятие защит (2.1.4.5, 2.2.0, Parrot Trust под T1.0.0)   {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 10: Виджет ADB-Toggle (ВКЛ / ВЫКЛ для визитов к дилеру)      {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 11: Сосуществование WebUSB и ADB (stop_adb / reclaim)        {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
-    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 12: Финал: глушим ГУ и извлекаем перемычку после GeelyTune   {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
+    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 12: Финал: выключение питания ГУ (1 мин) и снятие перемычки  {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}╚══════════════════════════════════════════════════════════════════════════════╝{C_RESET}\n")
     print(f"{C_BOLD}{C_CYAN}🎉 ДЕМОНСТРАЦИОННАЯ ВИДЕОСЪЕМКА ЗАВЕРШЕНА! Все режимы подтверждены.{C_RESET}\n")
 
