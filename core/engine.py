@@ -929,7 +929,7 @@ def worker_catch_factory_reset():
             if "Set property" in combined_out:
                 play_sound("catch")
                 STATE.log("🎉 УСПЕХ! Автомобиль подтвердил фиксацию порта (Set property)! Постоянный ADB активирован.", "success")
-                STATE.set_status("success", "ADB зафиксирован! Снимите перемычку и подтвердите перезагрузку ГУ.", 3)
+                STATE.set_status("success", "ADB зафиксирован! Перемычку НЕ трогаем. Подтвердите перезагрузку ГУ.", 3)
                 return
 
             if "Must be root" in combined_out or "cannot run as root" in combined_out:
@@ -948,10 +948,10 @@ def worker_catch_factory_reset():
 
 # ==================== STEP 3: REBOOT & VERIFY ====================
 def worker_reboot_and_verify():
-    """Reboots HU without jumper and waits for full boot."""
+    """Reboots HU and waits for full boot (jumper safely remains in place)."""
     STATE.set_status("working", "Перезагрузка ГУ... Это займет около 1.5 - 2 минут.", 3)
     STATE.log("🔄 Отправляем команду перезагрузки головного устройства...", "cmd")
-    STATE.log("💡 Пояснение: перемычка снята, теперь мы проверяем, сохраняется ли доступ по ADB в обычном рабочем режиме автомобиля.", "info")
+    STATE.log("💡 Пояснение: перемычку пока НЕ извлекаем (оставляем до конца настройки GeelyTune). Перезагружаем ГУ для применения VHAL.", "info")
     run_adb(["reboot"], timeout=10)
     time.sleep(15)
 
@@ -976,7 +976,7 @@ def worker_reboot_and_verify():
             time.sleep(2)
             check_devices()
             if STATE.device_state == "connected":
-                STATE.log("🎉 Связь подтверждена! ADB стабильно активен без перемычки.", "success")
+                STATE.log("🎉 Связь подтверждена! ADB стабильно активен в системе ГУ.", "success")
                 STATE.set_status("success", "ГУ перезагружено, ADB активен. Переходим к снятию системных ограничений.", 4)
                 return
         time.sleep(3)

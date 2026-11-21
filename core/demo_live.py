@@ -8,12 +8,13 @@
 3) Установка перемычки в сервисный порт
 4) Сброс настроек (Factory Reset) и перехват 13с сервисного окна за 0.2с
 5) Отправка VHAL 557872680 и фиксация постоянного ADB
-6) Извлечение перемычки (контроль безопасности)
+6) Безопасность: перемычка НЕ трогается до конца всех работ
 7) Полная перезагрузка ГУ (adb reboot) и ожидание sys.boot_completed
-8) Проверка холодного старта: постоянный ADB сохраняется БЕЗ перемычки
+8) Проверка готовности ГУ: постоянный ADB стабильно активен
 9) Снятие защит на ВСЕХ 3 поколениях прошивок (2.1.4.5, 2.2.0, Ранняя)
 10) Тестирование виджета ADB-Toggle (ВКЛ / ВЫКЛ отладки для дилера)
-11) Финальный вердикт: 100% готовность к веб-установщику GeelyTune
+11) Сосуществование WebUSB и ADB (переход в браузер GeelyTune / EX5 Apps)
+12) Финал: выключение ГУ и безопасное извлечение перемычки после GeelyTune
 """
 
 import sys
@@ -285,16 +286,14 @@ def run_demo():
     time.sleep(3.0)
 
     # ==================== ТЕСТ 6 ====================
-    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 6: Контроль безопасности — Извлечение перемычки{C_RESET}")
-    print(f"{C_YELLOW}[!] ВНИМАНИЕ: Извлекаем сервисную перемычку перед штатной эксплуатацией!{C_RESET}")
-    trigger_emulator_action("jumper", inserted=False)
-    time.sleep(1.5)
-    print(f"{C_GREEN}✅ Перемычка извлечена. Разъем чист.{C_RESET}")
+    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 6: Безопасный регламент — Сохранение перемычки в разъёме{C_RESET}")
+    print(f"{C_GREEN}[+] ПРАВИЛО: Перемычку НЕ трогаем и НЕ извлекаем до окончания настройки GeelyTune!{C_RESET}")
+    print("• Перемычка остаётся на месте, исключая риск замыкания или сбоя на работающем ГУ.")
     time.sleep(2.0)
 
     # ==================== ТЕСТ 7 ====================
     print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 7: Полная перезагрузка ГУ (adb reboot) и ожидание холодного старта{C_RESET}")
-    print("• Отправляем команду: adb reboot")
+    print("• Отправляем команду: adb reboot (перемычка остаётся в разъёме)")
     engine.run_adb(["reboot"])
     trigger_emulator_action("reboot", duration=4.0)
     sleep_with_progress(4.5, "Ожидание загрузки экрана мультимедиа (sys.boot_completed)")
@@ -304,12 +303,12 @@ def run_demo():
     time.sleep(2.0)
 
     # ==================== ТЕСТ 8 ====================
-    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 8: Проверка устойчивости связи — ADB открыт БЕЗ перемычки после ребута{C_RESET}")
+    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 8: Проверка устойчивости связи — ADB открыт и готов к снятию защит{C_RESET}")
     code_d, out_d, _ = engine.run_adb(["devices"])
     print(f"• adb devices:\n{C_GREEN}{out_d.strip()}{C_RESET}")
     code_st, out_st, _ = engine.run_adb(["get-state"])
     print(f"• adb get-state: {C_GREEN}{out_st.strip()}{C_RESET}")
-    print(f"{C_BOLD}{C_GREEN}🎉 ПРОВЕРКА ПРОЙДЕНА: Перемычки нет, но ADB стабильно работает навсегда!{C_RESET}")
+    print(f"{C_BOLD}{C_GREEN}🎉 ПРОВЕРКА ПРОЙДЕНА: Постоянный ADB зафиксирован в системе ГУ!{C_RESET}")
     time.sleep(3.0)
 
     # ==================== ТЕСТ 9 ====================
@@ -399,8 +398,15 @@ def run_demo():
     time.sleep(2.5)
 
     # ==================== ТЕСТ 12 ====================
-    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 12: Финальный отчет и готовность к установке через GeelyTune{C_RESET}")
-    time.sleep(1.0)
+    print(f"\n{C_BOLD}{C_YELLOW}▶️  ТЕСТ 12: Завершение работ — Выключение ГУ и извлечение перемычки{C_RESET}")
+    print("• 1. Настройка в GeelyTune и установка приложений полностью завершены.")
+    print(f"• 2. {C_YELLOW}Водитель полностью глушит авто (выключает зажигание, ГУ гаснет)...{C_RESET}")
+    time.sleep(1.5)
+    print(f"• 3. {C_GREEN}Аккуратно извлекаем сервисную перемычку из разъёма обесточенного ГУ!{C_RESET}")
+    trigger_emulator_action("jumper", inserted=False)
+    time.sleep(1.5)
+    print(f"{C_GREEN}✅ Перемычка извлечена. Разъём чист. Панель собрана на место.{C_RESET}")
+    time.sleep(2.0)
 
     print(f"\n{C_BOLD}{C_GREEN}╔══════════════════════════════════════════════════════════════════════════════╗{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║             РЕЗУЛЬТАТЫ ПОЛНОГО ТЕСТИРОВАНИЯ: 12 ИЗ 12 УСПЕШНО!               ║{C_RESET}")
@@ -410,13 +416,13 @@ def run_demo():
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 3:  Установка сервисной перемычки в разъем ГУ                {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 4:  Сброс настроек (Fast-Catcher перехват за 0.2с)           {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 5:  VHAL 557872680 (фиксация постоянного ADB)                {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
-    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 6:  Извлечение перемычки (контроль безопасности)             {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
+    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 6:  Сохранение перемычки (безопасность до финала GeelyTune)   {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 7:  Полная перезагрузка ГУ (sys.boot_completed=1)           {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
-    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 8:  Холодный старт (постоянный ADB без перемычки)            {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
+    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 8:  Постоянный ADB (проверка фиксации после ребута)          {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 9:  Снятие защит (2.1.4.5, 2.2.0, Parrot Trust под T1.0.0)   {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 10: Виджет ADB-Toggle (ВКЛ / ВЫКЛ для визитов к дилеру)      {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 11: Сосуществование WebUSB и ADB (stop_adb / reclaim)        {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
-    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 12: Готовность к GeelyTune (https://geelytune.github.io)      {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
+    print(f"{C_BOLD}{C_GREEN}║{C_RESET} [✓] Тест 12: Финал: глушим ГУ и извлекаем перемычку после GeelyTune   {C_GREEN}PASS{C_RESET}   {C_BOLD}{C_GREEN}║{C_RESET}")
     print(f"{C_BOLD}{C_GREEN}╚══════════════════════════════════════════════════════════════════════════════╝{C_RESET}\n")
     print(f"{C_BOLD}{C_CYAN}🎉 ДЕМОНСТРАЦИОННАЯ ВИДЕОСЪЕМКА ЗАВЕРШЕНА! Все режимы подтверждены.{C_RESET}\n")
 

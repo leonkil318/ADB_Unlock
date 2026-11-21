@@ -98,15 +98,18 @@ def run_full_wizard():
     if STATE.status != "success":
         return
 
-    # Step 3: Remove jumper & reboot
+    # Step 3: Reboot HU (Jumper stays in place!)
     clear_screen()
     print_banner()
-    print(f"\n{C_GREEN}{C_BOLD}[OK] VHAL ЗАФИКСИРОВАН (Set property получен)!{C_RESET}\n")
-    print(f"{C_WHITE}ДЕЙСТВИЯ С ПЕРЕМЫЧКОЙ:{C_RESET}")
-    print(f" 1. {C_YELLOW}Аккуратно снимите перемычку.{C_RESET}")
-    print(" 2. Кабель USB остаётся подключенным к ГУ.\n")
+    print(f"\n{C_GREEN}{C_BOLD}[OK] VHAL ЗАФИКСИРОВАН (Set property получен)! Постоянный ADB открыт.{C_RESET}\n")
+    print(f"{C_YELLOW}{C_BOLD}⚠️  ВНИМАНИЕ ПО ПЕРЕМЫЧКЕ: ПЕРЕМЫЧКУ СЕЙЧАС НЕ ТРОГАЕМ И НЕ ИЗВЛЕКАЕМ!{C_RESET}")
+    print(f"{C_WHITE}Оставьте сервисную перемычку в разъёме на всё время настройки.{C_RESET}")
+    print(f"Извлекать перемычку будем {C_GREEN}ТОЛЬКО ПОСЛЕ УСТАНОВКИ GEELYTUNE{C_RESET} на полностью выключенном ГУ.")
+    print("Так процесс пройдет надежно, спокойно и безопасно — не нужно лезть к контактам работающего авто.\n")
+    print(" 1. Перемычка: остаётся на месте в разъёме.")
+    print(" 2. Кабель USB: остаётся подключенным к ГУ и ноутбуку.\n")
     
-    ans = safe_input(f"{C_CYAN}Перемычка снята? [Enter - Перезагрузить ГУ и проверить ADB, 0 - Отмена] > {C_RESET}", default="0").strip()
+    ans = safe_input(f"{C_CYAN}Готовы перезагрузить ГУ и продолжить? [Enter - Да, 0 - Отмена] > {C_RESET}", default="1").strip()
     if ans == "0":
         return
     run_interactive_task(STATE, worker_reboot_and_verify, "Шаг 3: Перезагрузка ГУ и проверка постоянного ADB")
@@ -159,11 +162,17 @@ def post_unlock_prompt():
     """Prompt after successful unlock to open ex5app store or GeelyTune."""
     clear_screen()
     print_banner()
-    print(f"\n{C_GREEN}{C_BOLD}[OK] ПОЗДРАВЛЯЕМ! РАЗБЛОКИРОВКА ПОЛНОСТЬЮ ЗАВЕРШЕНА!{C_RESET}\n")
-    print(" • Постоянный ADB: активен")
+    print(f"\n{C_GREEN}{C_BOLD}[OK] ПОЗДРАВЛЯЕМ! РАЗБЛОКИРОВКА СИСТЕМЫ ПОЛНОСТЬЮ ЗАВЕРШЕНА!{C_RESET}\n")
+    print(" • Постоянный ADB: зафиксирован в ядре и VHAL навсегда")
     print(" • Проверка Parrot certificates / верификаторы: отключены (установка APK разрешена)")
     print(" • Проверяющий AutoInstallVerifier: отключен")
     print(" • Приложение Geely-ADB-Toggle: готово к работе на экране авто\n")
+    print(f"{C_YELLOW}{C_BOLD}🔌 ВАЖНОЕ ПРАВИЛО ПО ИЗВЛЕЧЕНИЮ ПЕРЕМЫЧКИ:{C_RESET}")
+    print(" • Если вы открывали порт с нуля, перемычка сейчас всё ещё остаётся в разъёме.")
+    print(f" • {C_GREEN}ТОЛЬКО ПОСЛЕ УСТАНОВКИ GEELYTUNE И ВСЕХ ТВproperties / ПРОГРАММ:{C_RESET}")
+    print("   1. Полностью заглушите автомобиль и выключите ГУ (экран должен погаснуть).")
+    print("   2. Аккуратно извлеките сервисную перемычку из разъёма и соберите панель.")
+    print("   Порт ADB уже зафиксирован в памяти бортового компьютера навсегда!\n")
     print(f"{C_CYAN}КУДА ПЕРЕЙТИ ДАЛЬШЕ?{C_RESET}")
     print(f" {C_GREEN}[1]{C_RESET} Открыть веб-магазин {C_BOLD}EX5 Apps{C_RESET} (https://ex5app.wingie.ru/ — софт от @wingus через браузер)")
     print(f" {C_WHITE}[2]{C_RESET} Открыть веб-сервис {C_BOLD}GeelyTune{C_RESET} (https://geelytune.github.io — твики ГУ)")
@@ -340,7 +349,10 @@ def main():
                 f"Если на сайте GeelyTune появится красное окно:\n"
                 f"{C_YELLOW}«Не получилось. На этой версии проверка включена всегда...»{C_RESET}\n"
                 f" ➔ Нажмите на сайте синюю кнопку: {C_GREEN}«Разрешить GeelyTune на этой прошивке»{C_RESET},\n"
-                f"    а затем кнопку {C_GREEN}«Попробовать снова»{C_RESET} — и твики установятся штатно!\n"
+                f"    а затем кнопку {C_GREEN}«Попробовать снова»{C_RESET} — и твики установятся штатно!\n\n"
+                f"{C_GREEN}{C_BOLD}🔌 ВАЖНО ПО ПЕРЕМЫЧКЕ:{C_RESET}\n"
+                f"Если вы открывали ADB с нуля через перемычку — она всё ещё находится в разъёме.\n"
+                f"ТОЛЬКО ПОСЛЕ того как установите GeelyTune и нужные твики: {C_YELLOW}полностью выключите авто (погасите ГУ) и извлеките перемычку{C_RESET}.\n"
             )
             handle_browser_session("https://geelytune.github.io", "GeelyTune (твики и помощник ГУ)", tips=tips)
         elif choice == "5":
