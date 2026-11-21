@@ -18,6 +18,7 @@ from engine import (
     locate_or_download_adb,
     kill_adb_processes,
     stop_adb_server,
+    reclaim_adb_connection,
     check_devices,
     test_adb_connection,
     run_adb,
@@ -30,12 +31,15 @@ from engine import (
 from tui import (
     init_terminal,
     clear_screen,
+    get_terminal_width,
     print_banner,
     render_diagnostic_card,
     render_menu,
     render_recent_logs,
     run_interactive_task,
     render_help_screen,
+    render_author_disclaimer,
+    render_exit_screen,
     C_RESET,
     C_BOLD,
     C_CYAN,
@@ -60,7 +64,21 @@ def run_full_wizard():
     """Runs the wizard for initial ADB unlock with factory reset."""
     clear_screen()
     print_banner()
-    print(f"\n{C_CYAN}{C_BOLD}[*] СЦЕНАРИЙ: ПЕРВОНАЧАЛЬНАЯ РАЗБЛОКИРОВКА ADB{C_RESET}\n")
+    print(f"\n{C_CYAN}{C_BOLD}[*] СЦЕНАРИЙ: ПЕРВОНАЧАЛЬНАЯ РАЗБЛОКИРОВКА ADB С НУЛЯ{C_RESET}\n")
+    print(f"{C_RED}{C_BOLD}⚠️  ВНИМАНИЕ: КАК НЕ РАЗОБРАТЬ САЛОН ЗРЯ!{C_RESET}")
+    print(f"{C_WHITE}В настройках ГУ у всех автомобилей с завода пишется «T1.0.0».{C_RESET}")
+    print(f"{C_WHITE}Но если под этой надписью скрывается новейшая заводская 2.2.0 — перемычка НЕ сработает!{C_RESET}")
+    print(f"{C_GRAY}(Завод Geely на 2.2.0 закрыл запуск службы ADB при сбросе настроек).{C_RESET}\n")
+    print(f"{C_YELLOW}{C_BOLD}ОРИЕНТИРОВОЧНЫЕ ВИЗУАЛЬНЫЕ ПРИЗНАКИ НА ЭКРАНЕ ГУ:{C_RESET}")
+    print(f" • {C_RED}{C_BOLD}Ветка 2.2.0 (ПЕРЕМЫЧКА ЗАКРЫТА!):{C_RESET}")
+    print(f"   В меню настроек / ассистентов вождения появился {C_YELLOW}«Лимит скорости»{C_RESET}.")
+    print(f"   {C_RED}Если лимит скорости есть — салон разбирать бесполезно!{C_RESET}")
+    print(f"   Для таких машин требуется софтанлок без разборки (через @eucsoft).\n")
+    print(f" • {C_GREEN}{C_BOLD}Ветка 2.1.4.5+ (ПЕРЕМЫЧКА РАБОТАЕТ):{C_RESET}")
+    print(f"   Внизу экрана в строке климата появились {C_YELLOW}мини-значки обогрева лобового стекла{C_RESET}.\n")
+    print(f" • {C_GREEN}{C_BOLD}Ветка 2.1.3 / ранняя (ПЕРЕМЫЧКА РАБОТАЕТ):{C_RESET}")
+    print(f"   Классический ранний вид: ни лимита скорости, ни мини-значков обогрева внизу нет.\n")
+    print(f"{C_GRAY}(Точную версию знает только дилерский GLDS, но эти ориентиры защитят вас от лишней работы).{C_RESET}\n")
     print(f"{C_WHITE}ГОТОВНОСТЬ К ПЕРЕХВАТУ:{C_RESET}")
     print(" 1. Кабель USB-A ↔ USB-A соединяет ноутбук и штатный порт автомобиля.")
     print(" 2. Отключите от ноутбука лишние телефоны и планшеты во избежание путаницы.")
@@ -105,16 +123,18 @@ def run_quick_unlock():
     """Runs quick unlock for cars with existing ADB after dealer 2.1.4.5+, 2.2.0 or GMC update."""
     clear_screen()
     print_banner()
-    print(f"\n{C_CYAN}{C_BOLD}[*] ПУНКТ 1: СНЯТИЕ ЗАЩИТЫ УСТАНОВКИ (2.1.4.5 / 2.2.0 / ПОСЛЕ GMC){C_RESET}\n")
+    print(f"\n{C_CYAN}{C_BOLD}[*] ПУНКТ 1: СНЯТИЕ ЗАЩИТЫ УСТАНОВКИ (УНИВЕРСАЛЬНО ПОД ЛЮБУЮ ПРОШИВКУ){C_RESET}\n")
+    print(f"{C_GREEN}{C_BOLD}ℹ️  Это официальный скрипт адаптации GeelyTune (после обновления GMC / 2.2.0)!{C_RESET}")
+    print(f"{C_WHITE}Он ОБЯЗАТЕЛЕН после обновления блоков у дилера перед установкой GeelyTune или софта.{C_RESET}\n")
     print(f"{C_RED}{C_BOLD}⚠️  ВНИМАНИЕ: ПУНКТ [1] НЕ ОТКРЫВАЕТ ЗАКРЫТЫЙ С ЗАВОДА ПОРТ ADB!{C_RESET}")
-    print(f"{C_YELLOW}Этот пункт предназначен ТОЛЬКО для автомобилей, где ADB УЖЕ БЫЛ ОТКРЫТ ранее{C_RESET}")
-    print("(например, вы открывали его ранее, а затем обновились у дилера до 2.1.4.5 / 2.2.0")
-    print("или получили обновление после GMC, из-за чего заблокировалась установка сторонних APK).\n")
+    print(f"{C_YELLOW}Этот пункт предназначен для автомобилей, где ADB УЖЕ НА СВЯЗИ по USB кабелю{C_RESET}")
+    print("(например, вы открывали его ранее, либо обновились у дилера с включенным тумблером).\n")
     print(f"{C_GREEN}• Перемычка и сброс настроек НЕ ТРЕБУЮТСЯ!{C_RESET}")
-    print("• Скрипт автоматически распознает прошивку авто:")
-    print("  - На 2.1.4.5: отключает защиту Parrot certificates в build.prop;")
-    print("  - На 2.2.0 / GMC: открывает системные разделы и изолирует старые оверлеи в scratch;")
-    print("  - На всех версиях: отключает AutoInstallVerifier и ставит переключатель Geely-ADB-Toggle.\n")
+    print("• Скрипт сам безопасно определит, что скрывается под заводской маской T1.0.0:")
+    print("  - На ветке 2.1.3: автоматически применит доверенный ключ Parrot Trust для переключателя;")
+    print("  - На ветке 2.1.4.5: глобально отключит защиту Parrot certificates в build.prop;")
+    print("  - На ветке 2.2.0 / GMC: изолирует оверлеи в scratch (park) и откроет системные разделы;")
+    print("  - На всех версиях: отключит AutoInstallVerifier и установит переключатель Geely-ADB-Toggle.\n")
     print(f"{C_GRAY}Если на автомобиле ADB ещё закрыт с завода — вернитесь назад и выберите [2] (Открыть ADB с нуля).{C_RESET}\n")
 
     # Guard: check if vehicle responds over ADB
@@ -130,7 +150,7 @@ def run_quick_unlock():
         return
 
     # Run quick unlock
-    run_interactive_task(STATE, worker_unlock_and_install, "Экспресс-снятие защиты установки (2.1.4.5 / 2.2.0 / GMC)")
+    run_interactive_task(STATE, worker_unlock_and_install, "Снятие защиты установки (Универсально: для всех версий)")
     if STATE.status == "success":
         post_unlock_prompt()
 
@@ -220,8 +240,67 @@ def run_parrot_trust_wizard():
     )
 
 
+def handle_browser_session(url, site_name, tips=""):
+    """
+    Handles launching a browser WebUSB tool, pausing ADB to free the USB port,
+    and reliably reclaiming the ADB connection when the user returns.
+    """
+    play_sound("step")
+    print(f"\n{C_CYAN}Освобождаем USB-разъём (завершаем фоновые процессы adb.exe)...{C_RESET}")
+    stop_adb_server()
+    webbrowser.open(url)
+    STATE.log(f"Служба ADB остановлена. Открыт {site_name}: {url}", "success")
+    print(f"\n{C_GREEN}{C_BOLD}[OK] Фоновая служба ADB остановлена! Порт свободен для браузера (WebUSB).{C_RESET}")
+    print(f"{C_WHITE}В браузере открылся {site_name}.{C_RESET}")
+    print(f"{C_YELLOW}Пока вы работаете в браузере, программа ждёт и НЕ занимает USB-порт.{C_RESET}\n")
+    if tips:
+        print(tips)
+
+    print(f"{C_CYAN}{C_BOLD}ВАЖНО ПЕРЕД ВОЗВРАТОМ В ПРОГРАММУ:{C_RESET}")
+    print(f"После завершения работы на сайте {C_YELLOW}закройте вкладку браузера{C_RESET} или нажмите на сайте кнопку {C_YELLOW}«Отключиться»{C_RESET},")
+    print("чтобы браузер (Chrome / Edge) освободил USB-порт для нашей программы.\n")
+
+    while True:
+        safe_input(f"{C_CYAN}Когда закончите работу в браузере, нажмите Enter для возврата и перехвата ADB...{C_RESET}")
+        print(f"\n{C_CYAN}[*] Завершаем работу с браузером и перехватываем управление ADB назад...{C_RESET}")
+
+        if reclaim_adb_connection(retries=4, delay=0.8):
+            play_sound("success")
+            print(f"\n{C_GREEN}{C_BOLD}✅ [УСПЕХ] Связь с ГУ успешно перехвачена назад! ADB активен.{C_RESET}")
+            STATE.log("Связь с ГУ успешно перехвачена назад после браузера.", "success")
+            test_adb_connection()
+            time.sleep(1.2)
+            break
+        else:
+            play_sound("error")
+            print(f"\n{C_RED}{C_BOLD}⚠️  ВНИМАНИЕ: ГУ не обнаружено или USB-порт всё ещё занят браузером!{C_RESET}")
+            print(f"{C_WHITE}Браузер (Chrome / Edge) не отпустил USB-устройство, либо отошёл кабель.{C_RESET}\n")
+            print(f"{C_YELLOW}ЧТО ДЕЛАТЬ СЕЙЧАС:{C_RESET}")
+            print(f" 1. {C_GREEN}Закройте вкладку с сайтом{C_RESET} ({site_name}) в вашем браузере.")
+            print(f" 2. Нажмите на сайте кнопку «Отключиться» (если вкладка ещё открыта).")
+            print(f" 3. Проверьте надежность подключения кабеля USB-A к ноутбуку и автомобилю.\n")
+
+            retry = safe_input(f"{C_CYAN}Попробовать перехватить порт снова? [Enter - Да, 0 - Выйти в меню] > {C_RESET}", default="1").strip()
+            if retry == "0":
+                break
+
+
 def main():
     init_terminal()
+    clear_screen()
+    W = get_terminal_width()
+    print_banner(W)
+    render_author_disclaimer(W)
+    print()
+    ans = safe_input(f"{C_CYAN}Вы принимаете условия и готовы продолжить? [Enter - Принять и перейти в Справку, 0 - Выход] > {C_RESET}", default="1").strip()
+    if ans == "0":
+        render_exit_screen(seconds=2)
+        sys.exit(0)
+
+    # Transition to help screen first, as requested
+    clear_screen()
+    render_help_screen()
+
     clear_screen()
     print_banner()
     print(f"\n{C_CYAN}Инициализация модулей и проверка ADB...{C_RESET}")
@@ -234,6 +313,10 @@ def main():
         test_adb_connection()
 
     while True:
+        check_devices()
+        if STATE.device_state == "connected" and STATE.last_test is None:
+            test_adb_connection()
+
         clear_screen()
         print_banner()
         render_diagnostic_card(STATE)
@@ -252,23 +335,22 @@ def main():
             play_sound("step")
             run_interactive_task(STATE, test_adb_connection, "Диагностика связи и проверка статуса ГУ")
         elif choice == "4":
-            play_sound("step")
-            print(f"\n{C_CYAN}Освобождаем USB-разъём (завершаем фоновые процессы adb.exe)...{C_RESET}")
-            stop_adb_server()
-            print(f"{C_GREEN}[OK] Служба ADB остановлена. Порт свободен для браузера (WebUSB)!{C_RESET}")
-            webbrowser.open("https://geelytune.github.io")
-            STATE.log("Служба ADB остановлена. Открыт GeelyTune (твики ГУ): https://geelytune.github.io", "success")
-            time.sleep(1.5)
+            tips = (
+                f"{C_CYAN}{C_BOLD}💡 ПОДСКАЗКА ДЛЯ РАННИХ ПРОШИВОК (2.1.3.1 / T1.0.0):{C_RESET}\n"
+                f"Если на сайте GeelyTune появится красное окно:\n"
+                f"{C_YELLOW}«Не получилось. На этой версии проверка включена всегда...»{C_RESET}\n"
+                f" ➔ Нажмите на сайте синюю кнопку: {C_GREEN}«Разрешить GeelyTune на этой прошивке»{C_RESET},\n"
+                f"    а затем кнопку {C_GREEN}«Попробовать снова»{C_RESET} — и твики установятся штатно!\n"
+            )
+            handle_browser_session("https://geelytune.github.io", "GeelyTune (твики и помощник ГУ)", tips=tips)
         elif choice == "5":
-            play_sound("step")
-            print(f"\n{C_CYAN}Освобождаем USB-разъём (завершаем фоновые процессы adb.exe)...{C_RESET}")
-            stop_adb_server()
-            print(f"{C_GREEN}[OK] Служба ADB остановлена. Порт свободен для браузера (WebUSB)!{C_RESET}")
-            webbrowser.open("https://ex5app.wingie.ru/")
-            STATE.log("Служба ADB остановлена. Открыт веб-установщик EX5 Apps: https://ex5app.wingie.ru/", "success")
-            print(f"{C_WHITE}В браузере откроется каталог приложений от @wingus.{C_RESET}")
-            print(f"{C_WHITE}Нажмите «Подключить» в браузере и устанавливайте приложения прямо через WebUSB!{C_RESET}")
-            time.sleep(2)
+            tips = (
+                f"{C_YELLOW}{C_BOLD}⚠️  ВНИМАНИЕ ДЛЯ РАННИХ ПРОШИВОК (2.1.3.1 / T1.0.0):{C_RESET}\n"
+                f"Магазин EX5 Apps не умеет подписывать сертификаты на лету.\n"
+                f"Если при установке APK в браузере вылезет ошибка Parrot Certificates:\n"
+                f"скачайте файл APK на компьютер и установите его через пункт {C_GREEN}[T]{C_RESET} нашего меню!\n"
+            )
+            handle_browser_session("https://ex5app.wingie.ru/", "Каталог приложений EX5 Apps (@wingus)", tips=tips)
         elif choice == "6":
             play_sound("step")
             run_interactive_task(STATE, kill_adb_processes, "Перезапуск службы ADB")
@@ -286,8 +368,7 @@ def main():
         elif choice in ["0", "q", "exit", "quit"]:
             play_sound("step")
             stop_adb_server()
-            print(f"\n{C_GREEN}Завершение работы. Удачи на дорогах!{C_RESET}")
-            time.sleep(0.5)
+            render_exit_screen(seconds=5)
             break
         else:
             time.sleep(0.2)

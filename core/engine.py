@@ -643,6 +643,22 @@ def stop_adb_server():
     STATE.log("Фоновая служба ADB остановлена. USB-порт полностью передан браузеру.", "success")
 
 
+def reclaim_adb_connection(retries=4, delay=0.8):
+    """
+    Terminates any rogue or orphaned ADB processes, restarts the daemon,
+    and attempts to reclaim the USB connection from the browser.
+    Returns True if a device is successfully detected, False otherwise.
+    """
+    STATE.log("Перехватываем управление USB-портом: перезапуск службы ADB...", "cmd")
+    kill_adb_processes()
+    time.sleep(0.5)
+    for _ in range(retries):
+        if check_devices():
+            return True
+        time.sleep(delay)
+    return False
+
+
 def check_devices():
     """Checks connected devices."""
     code, stdout, _ = run_adb(["devices"])
@@ -669,6 +685,7 @@ def check_devices():
     else:
         STATE.device_serial = None
         STATE.device_state = "disconnected"
+        STATE.last_test = None
         return False
 
 
@@ -781,15 +798,28 @@ def test_adb_connection():
         STATE.log(f"⚠️ Root-доступ ограничен или не предоставлен (UID: {out_id or 'неизвестно'}).", "warning")
 
     # 3. Read firmware & system properties
-    STATE.log("📋 Считывание сведений о прошивке ГУ...", "cmd")
+    STATE.log("📋 Считывание сведений об устройстве (ADB getprop)...", "cmd")
     _, fw_build, _ = run_adb(["shell", "getprop", "ro.build.display.id"], timeout=5)
     _, fw_inc, _ = run_adb(["shell", "getprop", "ro.build.version.incremental"], timeout=5)
     _, model, _ = run_adb(["shell", "getprop", "ro.product.model"], timeout=5)
-    firmware_info = fw_build.strip() or fw_inc.strip() or "Не определена"
-    model_info = model.strip() or "Штатное ГУ Geely"
-    STATE.log(f"🚘 Модель ГУ: {model_info} | Прошивка: {firmware_info}", "info")
+    _, android_rel, _ = run_adb(["shell", "getprop", "ro.build.version.release"], timeout=5)
 
-    # 4. Check Parrot app_verify and firmware generation (2.1.4.5 vs 2.2.0 vs early)
+    build_id = (fw_build.strip() or fw_inc.strip())
+    android_ver = android_rel.strip()
+    model_info = model.strip() or "Штатное ГУ Geely"
+
+    if android_ver and build_id:
+        os_info = f"Android {android_ver} ({build_id})"
+    elif android_ver:
+        os_info = f"Android {android_ver}"
+    elif build_id:
+        os_info = build_id
+    else:
+        os_info = "ОС Android"
+
+    STATE.log(f"🚘 Модель ГУ: {model_info} | {os_info}", "info")
+
+    # 4. Check Parrot app_verify and firmware generation
     _, parrot_val, _ = run_adb(["shell", "getprop", "ro.vendor.ecarx.app_verify"], timeout=5)
     parrot_val = parrot_val.strip().lower()
     code_pdir, out_pdir, _ = run_adb(["shell", "[ -d /system/etc/security/parrot ] && echo 1 || echo 0"], timeout=5)
@@ -798,19 +828,29 @@ def test_adb_connection():
     if parrot_val == "true":
         parrot_locked = True
         parrot_status_desc = "locked"
-        STATE.log("🔒 Защита Parrot certificates: ВКЛЮЧЕНА (прошивка 2.1.4.5+, блокирует сторонние APK)", "warning")
+        fw_family = "Ветка ~2.1.4.5+ (Parrot отключаемый)"
+        STATE.log("🔒 Защита Parrot: ВКЛЮЧЕНА (ветка ~2.1.4.5+ под маской T1.0.0; ориентир: мини-значки обогрева лобового в климате внизу).", "warning")
     elif parrot_val == "false":
         parrot_locked = False
         parrot_status_desc = "disabled"
-        STATE.log("🔓 Защита Parrot certificates: ВЫКЛЮЧЕНА (установка сторонних APK разрешена)", "success")
+        fw_family = "Ветка ~2.1.4.5+ (Parrot уже выключен)"
+        STATE.log("🔓 Защита Parrot: ВЫКЛЮЧЕНА (ветка ~2.1.4.5+, установка любых APK разрешена).", "success")
     elif has_parrot_dir:
         parrot_locked = True
         parrot_status_desc = "hardcoded"
-        STATE.log("ℹ️ Защита Parrot certificates: РАННЯЯ ПРОШИВКА (вшита в систему без выключателя)", "warning")
+        fw_family = "Ветка ~2.1.3 / ранняя (Parrot вшит намертво)"
+        STATE.log("ℹ️ Защита Parrot: РАННЯЯ ВЕТКА ~2.1.3 (под маской T1.0.0; защита вшита намертво без выключателя).", "warning")
+        STATE.log("💡 На этой прошивке нет лимита скорости и нет мини-значков обогрева лобового в строке климата.", "info")
     else:
         parrot_locked = False
         parrot_status_desc = "absent"
-        STATE.log("🔓 Защита Parrot certificates: ОТСУТСТВУЕТ (прошивка 2.2.0+ / после GMC, установка APK разрешена)", "success")
+        fw_family = "Ветка ~2.2.0 / GMC (Parrot отсутствует)"
+        STATE.log("🔓 Защита Parrot: ОТСУТСТВУЕТ (ветка ~2.2.0 / GMC под маской T1.0.0; ориентир: пункт «Лимит скорости» в меню ГУ).", "success")
+
+    if android_ver:
+        os_info = f"Android {android_ver} • {fw_family}"
+    else:
+        os_info = fw_family
 
     # 5. Check AutoInstallVerifier package
     _, pm_out, _ = run_adb(["shell", "pm", "list", "packages", "-e"], timeout=8)
@@ -842,7 +882,8 @@ def test_adb_connection():
         "connected": True,
         "serial": serial,
         "model": model_info,
-        "firmware": firmware_info,
+        "firmware": os_info,
+        "os_info": os_info,
         "root_ok": root_ok,
         "parrot_locked": parrot_locked,
         "parrot_status_desc": parrot_status_desc,
@@ -987,6 +1028,7 @@ def worker_unlock_and_install():
 
     # Run loop
     unlocked_ok = False
+    is_early_parrot = False
     for pass_num in range(1, 9):
         if STATE.stop_worker:
             STATE.log("⚠️ Операция прервана пользователем", "warning")
@@ -1009,15 +1051,30 @@ def worker_unlock_and_install():
             break
         elif "GT:PARROT" in out:
             run_adb(["shell", "rm", "-f", "/data/local/tmp/gt-unlock.sh"], timeout=5)
-            STATE.log("⚠️ Обнаружена ранняя версия прошивки: защита Parrot вшита намертво и не имеет выключателя.", "warning")
-            STATE.log("💡 Для снятия ограничений обновите прошивку автомобиля у дилера до 2.1.4.5 или 2.2.0.", "info")
-            STATE.set_error(
-                title="Прошивка автомобиля устарела",
-                reason="Проверка подписи Parrot на ней включена всегда и не выключается.",
-                steps=["Обновите прошивку автомобиля у дилера до версии 2.1.4.5 или 2.2.0, после чего повторите процедуру."],
-                raw="GT:PARROT received"
-            )
-            return
+            STATE.log("ℹ️ Обнаружена заводская ранняя ветка 2.1.3 (под маской T1.0.0; Parrot вшит в систему).", "info")
+            STATE.log("🔑 Защита Parrot в этой версии не имеет глобального выключателя. Автоматически применяем технологию Parrot Trust...", "cmd")
+            STATE.log("📦 Внедряем доверенный ключ для переключателя Geely-ADB-Toggle...", "cmd")
+
+            toggle_apk = apk_file
+            if not os.path.isfile(toggle_apk):
+                toggle_apk = get_resource_path("Geely-ADB-Toggle-1.1.0.apk")
+            if not os.path.isfile(toggle_apk):
+                toggle_apk = os.path.join(CURRENT_DIR, "Geely-ADB-Toggle-1.1.0.apk")
+            if not os.path.isfile(toggle_apk):
+                toggle_apk = os.path.join(ROOT_DIR, "core", "Geely-ADB-Toggle-1.1.0.apk")
+
+            if os.path.isfile(toggle_apk):
+                worker_install_via_parrot_trust(toggle_apk, "Geely-ADB-Toggle-1.1.0")
+            else:
+                STATE.set_error("Файл Geely-ADB-Toggle не найден", "Не найден APK-файл переключателя для установки через доверенный сертификат.")
+                return
+
+            if STATE.status == "error":
+                return
+
+            unlocked_ok = True
+            is_early_parrot = True
+            break
         elif "GT:REMOUNT" in out:
             STATE.log("🔄 Открываем системный раздел диска ГУ для записи (remount)...", "info")
             run_adb(["remount"], timeout=15)
@@ -1075,6 +1132,23 @@ def worker_unlock_and_install():
         STATE.set_error(title, reason, steps, raw=out)
         return
 
+    # If installed via Parrot Trust, finish with dedicated guidance
+    if is_early_parrot:
+        final_parrot_locked = True
+        final_verifier_active = False
+        if STATE.last_test and isinstance(STATE.last_test, dict):
+            STATE.last_test["parrot_locked"] = True
+            STATE.last_test["parrot_status_desc"] = "hardcoded"
+            STATE.last_test["verifier_active"] = False
+            STATE.last_test["toggle_installed"] = True
+            STATE.last_test["needs_unlock"] = False
+            STATE.last_test["recommendation"] = "ready"
+            STATE.last_test["message"] = "Переключатель установлен через доверенный сертификат!"
+        STATE.set_status("success", "Переключатель Geely-ADB-Toggle успешно установлен через доверенный сертификат!", 5)
+        STATE.log("🏆 ВСЕ ЭТАПЫ РАЗБЛОКИРОВКИ ВЫПОЛНЕНЫ! Переключатель Geely-ADB-Toggle установлен в ГУ.", "success")
+        STATE.log("💡 На ветке 2.1.3 защита Parrot вшита намертво: для установки других сторонних APK (Яндекс, плееры) используйте пункт [T] в меню — он добавит сертификат и установит приложение в 1 клик.", "info")
+        return
+
     # Install Toggle APK if not already installed
     _, toggle_check, _ = run_adb(["shell", "pm", "list", "packages"], timeout=5)
     already_installed = any(pkg in (toggle_check or "") for pkg in ["com.yahooeu2k.ex5.adbtoggle", "com.geely.adbtoggle", "adbtoggle", "geelyadbtoggle"])
@@ -1124,7 +1198,8 @@ def worker_unlock_and_install():
             "connected": True,
             "serial": STATE.device_serial,
             "model": "Geely Head Unit",
-            "firmware": "2.1.4.5 / 2.2.0",
+            "firmware": (STATE.last_test.get("os_info") or "ОС Android") if STATE.last_test else "ОС Android",
+            "os_info": (STATE.last_test.get("os_info") or "ОС Android") if STATE.last_test else "ОС Android",
             "root_ok": True,
             "parrot_locked": final_parrot_locked,
             "parrot_status_desc": "absent" if not parrot_check.strip() else "disabled",
@@ -1245,9 +1320,28 @@ def worker_install_via_parrot_trust(apk_path, app_name=None):
         STATE.log(f"📂 Запись сертификата в хранилище доверенных ключей ГУ: {target_pem}...", "cmd")
 
         ensure_root(timeout=15)
-        run_adb(["remount"], timeout=15)
+        code_rem, out_rem, err_rem = run_adb(["remount"], timeout=15)
+        if "reboot" in (out_rem + err_rem).lower():
+            STATE.log("🔄 Требуется перезагрузка для remount — перезагружаем ГУ (около 2 минут)...", "cmd")
+            run_adb(["reboot"], timeout=10)
+            time.sleep(20)
+            start_rem_wait = time.time()
+            while not STATE.stop_worker:
+                if time.time() - start_rem_wait > 300:
+                    STATE.set_error("Таймаут перезагрузки ГУ", "ГУ не загрузилось за 5 минут.", ["Проверьте экран автомобиля."])
+                    return
+                c, b, _ = run_adb(["shell", "getprop", "sys.boot_completed"], timeout=5)
+                if c == 0 and b.strip() == "1":
+                    break
+                time.sleep(3)
+            ensure_root(timeout=30)
+            run_adb(["remount"], timeout=15)
 
-        temp_pem = os.path.join(BIN_DIR, f"{safe_name}.x509.pem")
+        run_adb(["shell", "mkdir -p /system/etc/security/parrot"], timeout=5)
+
+        import tempfile
+        temp_dir = tempfile.gettempdir()
+        temp_pem = os.path.join(temp_dir, f"{safe_name}.x509.pem")
         try:
             with open(temp_pem, "w", encoding="utf-8") as f:
                 f.write(pem)
@@ -1286,6 +1380,24 @@ def worker_install_via_parrot_trust(apk_path, app_name=None):
 
         ensure_root(timeout=30)
         run_adb(["wait-for-device"], timeout=5)
+
+        # Ожидание стабилизации adbd (как в оригинальном trust.bat settle)
+        STATE.log("⏳ Проверка стабильности службы adbd перед установкой...", "cmd")
+        last_pid = None
+        stable_count = 0
+        for _ in range(20):
+            if STATE.stop_worker:
+                return
+            _, pid_out, _ = run_adb(["shell", "pidof", "adbd"], timeout=5)
+            pid = pid_out.strip()
+            if pid and pid == last_pid:
+                stable_count += 3
+                if stable_count >= 15:
+                    break
+            else:
+                last_pid = pid
+                stable_count = 0
+            time.sleep(3)
 
     # Install APK
     STATE.log(f"📱 Установка приложения {base_apk} в систему...", "cmd")

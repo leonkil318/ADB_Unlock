@@ -41,6 +41,9 @@ desktop.ini
 *.mp4
 *.mkv
 *.avi
+*.jpg
+*.jpeg
+*.png
 *.tmp
 *.bak
 *.zip

@@ -91,11 +91,22 @@ def pad_box_line(text, inner_width):
 
 
 def init_terminal():
-    """Initializes terminal encoding and enables ANSI processing on Windows."""
+    """Initializes terminal encoding, enables ANSI processing, and maximizes window on Windows."""
     if sys.platform == "win32":
         try:
             import ctypes
             kernel32 = ctypes.windll.kernel32
+            user32 = ctypes.windll.user32
+
+            # 1. Maximize console window (SW_MAXIMIZE = 3) so all text, tables and UI fit cleanly
+            hwnd = kernel32.GetConsoleWindow()
+            if hwnd:
+                user32.ShowWindow(hwnd, 3)
+                time.sleep(0.08)
+            else:
+                os.system("mode con: cols=120 lines=42 >nul 2>&1")
+
+            # 2. Enable virtual terminal processing (VT100 / ANSI colors)
             hOut = kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
             mode = ctypes.c_ulong()
             kernel32.GetConsoleMode(hOut, ctypes.byref(mode))
@@ -121,16 +132,17 @@ def clear_screen():
         sys.stdout.flush()
 
 
-def print_banner():
+def print_banner(W=None):
     """Renders the cyan hacker-style header banner adaptively to window width."""
-    W = get_terminal_width()
+    if W is None:
+        W = get_terminal_width()
     inner = W - 2
 
     top = f"{C_CYAN}╔" + ("═" * inner) + f"╗{C_RESET}"
     bot = f"{C_CYAN}╚" + ("═" * inner) + f"╝{C_RESET}"
 
-    t1 = "GEELY ADB UNLOCK MASTER v2.2.0"
-    t2 = "Flyme Auto / Ecarx Service Terminal • EX5 EM-i / X80 (2.1.4.5 / 2.2.0)"
+    t1 = "GEELY ADB UNLOCK MASTER"
+    t2 = "Flyme Auto / Ecarx Service Terminal • EX5 EM-i / X80 / Universal"
 
     def center_line(text, color):
         v = visible_len(text)
@@ -149,11 +161,14 @@ def render_diagnostic_card(state):
     W = get_terminal_width()
     inner = W - 4
 
-    t = state.last_test or {}
+    t = state.last_test
+    has_test = bool(t)
+    t = t or {}
+
     connected = t.get("connected", state.device_state == "connected")
     serial = t.get("serial") or state.device_serial or "Не обнаружено"
     model = t.get("model") or ("Штатное ГУ Geely" if connected else "-")
-    firmware = t.get("firmware") or ("2.1.4.5 / 2.2.0" if connected else "-")
+    os_info = t.get("os_info") or t.get("firmware") or ("ОС Android" if connected else "-")
 
     if connected:
         adb_badge = f"{C_GREEN}[ АКТИВЕН ]{C_RESET}"
@@ -162,7 +177,7 @@ def render_diagnostic_card(state):
     else:
         adb_badge = f"{C_RED}[ НЕ ПОДКЛЮЧЕН ]{C_RESET}"
 
-    if connected:
+    if connected and has_test:
         p_desc = t.get("parrot_status_desc")
         if t.get("parrot_locked"):
             if p_desc == "hardcoded":
@@ -170,14 +185,20 @@ def render_diagnostic_card(state):
             else:
                 parrot_badge = f"{C_YELLOW}[ БЛОКИРУЕТ ]{C_RESET}"
         elif p_desc == "absent":
-            parrot_badge = f"{C_GREEN}[ 2.2.0 (СНЯТА) ]{C_RESET}"
-        else:
+            parrot_badge = f"{C_GREEN}[ ОТСУТСТВУЕТ ]{C_RESET}"
+        elif p_desc == "disabled":
             parrot_badge = f"{C_GREEN}[ ВЫКЛЮЧЕНА ]{C_RESET}"
+        else:
+            parrot_badge = f"{C_GREEN}[ СНЯТА ]{C_RESET}"
 
         if t.get("verifier_active"):
             verifier_badge = f"{C_YELLOW}[ АКТИВЕН ]{C_RESET}"
         else:
             verifier_badge = f"{C_GREEN}[ ОТКЛЮЧЕН ]{C_RESET}"
+    elif connected:
+        parrot_badge = f"{C_GRAY}[ НЕ ПРОВЕРЕНО ]{C_RESET}"
+        verifier_badge = f"{C_GRAY}[ НЕ ПРОВЕРЕНО ]{C_RESET}"
+        os_info = f"{C_GRAY}Нажмите [3] для теста{C_RESET}"
     else:
         parrot_badge = f"{C_GRAY}[ - ]{C_RESET}"
         verifier_badge = f"{C_GRAY}[ - ]{C_RESET}"
@@ -213,7 +234,7 @@ def render_diagnostic_card(state):
         print(f"{C_CYAN}│{C_RESET} {l1_c1}{pad1}{l1_c2}{pad2} {C_CYAN}│{C_RESET}")
 
         l2_c1 = f"Модель ГУ:     {C_WHITE}{model}{C_RESET}"
-        l2_c2 = f"Прошивка:    {C_CYAN}{firmware}{C_RESET}"
+        l2_c2 = f"ОС ГУ:       {C_CYAN}{os_info}{C_RESET}"
         pad1 = " " * max(0, col1_w - visible_len(l2_c1))
         pad2 = " " * max(0, col2_w - visible_len(l2_c2))
         print(f"{C_CYAN}│{C_RESET} {l2_c1}{pad1}{l2_c2}{pad2} {C_CYAN}│{C_RESET}")
@@ -232,7 +253,7 @@ def render_diagnostic_card(state):
         print_single(f"Связь ADB:     {adb_badge}")
         print_single(f"Серийник:      {C_WHITE}{serial}{C_RESET}")
         print_single(f"Модель ГУ:     {C_WHITE}{model}{C_RESET}")
-        print_single(f"Прошивка:      {C_CYAN}{firmware}{C_RESET}")
+        print_single(f"ОС ГУ:         {C_CYAN}{os_info}{C_RESET}")
         print_single(f"Защита Parrot: {parrot_badge}")
         print_single(f"Верификатор:   {verifier_badge}")
 
@@ -257,9 +278,9 @@ def render_menu(state):
         print(f"{C_CYAN}│{C_RESET} {p} {C_CYAN}│{C_RESET}")
 
     if connected and needs_unlock:
-        print_menu_item(f"{C_GREEN}{C_BOLD}[1] Снять защиту установки (2.1.4.5 / 2.2.0 / GMC, если ADB уже открыт){C_RESET}")
+        print_menu_item(f"{C_GREEN}{C_BOLD}[1] Снять защиту установки (Универсально: любая версия под T1.0.0){C_RESET}")
     else:
-        print_menu_item(f"{C_WHITE}[1]{C_RESET} Снять защиту установки (2.1.4.5 / 2.2.0 / GMC, если ADB уже открыт)")
+        print_menu_item(f"{C_WHITE}[1]{C_RESET} Снять защиту установки (Универсально: любая версия под T1.0.0)")
 
     print_menu_item(f"{C_WHITE}[2]{C_RESET} Открыть ADB с нуля (Фиксация порта через перемычку + сброс ГУ)")
     print_menu_item(f"{C_WHITE}[3]{C_RESET} Проверить статус ГУ (Диагностика связи и состояния блокировок)")
@@ -513,17 +534,31 @@ def render_help_screen():
     box_line("Наша программа — это безопасный цифровой ключ, который всё настраивает.", C_GREEN)
     box_bottom()
 
+    box_title("[МАСКА T1.0.0] КАК ОПРЕДЕЛИТЬ СВОЮ ВЕРСИЮ ПО ЗНАЧКАМ?")
+    box_line("В настройках ГУ у всех автомобилей с завода пишется «T1.0.0».", C_WHITE)
+    box_line("Но под этой надписью может скрываться 3 разных поколения системы:", C_WHITE)
+    box_line("• Ветка 2.2.0 (ПЕРЕМЫЧКА ЗАКРЫТА!):", C_RED)
+    box_line("  - Признак: в меню настроек / ассистентов вождения появился «Лимит скорости».", C_YELLOW)
+    box_line("  - На ней завод Geely закрыл ADB при сбросе настроек: перемычка НЕ сработает!", C_RED)
+    box_line("  - Если лимит скорости есть — не разбирайте салон! Нужен софтанлок (@eucsoft).", C_RED)
+    box_line("• Ветка 2.1.4.5+ (ПЕРЕМЫЧКА РАБОТАЕТ):", C_GREEN)
+    box_line("  - Признак: внизу на главном экране в строке климата появились мини-значки обогрева лобового стекла.", C_YELLOW)
+    box_line("  - На ней защита Parrot отключается глобально через build.prop.", C_WHITE)
+    box_line("• Ветка 2.1.3 / ранняя (ПЕРЕМЫЧКА РАБОТАЕТ):", C_GREEN)
+    box_line("  - Признак: классический вид (нет ни лимита скорости, ни мини-значков обогрева внизу).", C_YELLOW)
+    box_line("  - Защита Parrot вшита: программа ставит переключатель через доверенный ключ (Parrot Trust).", C_WHITE)
+    box_line("(Точную версию знает только сканер GLDS у дилера, но эти значки спасут от разборки салона).", C_GRAY)
+    box_bottom()
+
     box_title("[!] В ЧЁМ РАЗНИЦА: ПУНКТ 1 ИЛИ ПУНКТ 2?")
-    box_line("• Пункт [1] — Снятие защиты установки (2.1.4.5 / 2.2.0 / после GMC):", C_YELLOW)
-    box_line("  ВАЖНО: Пункт [1] НЕ открывает закрытый порт ADB! Он нужен ТОЛЬКО если ADB", C_RED)
-    box_line("  уже был открыт ранее, но после обновления прошивки (до 2.1.4.5, 2.2.0 или GMC)", C_WHITE)
-    box_line("  слетели настройки и заблокировалась установка сторонних APK.", C_WHITE)
-    box_line("  Перемычка и сброс НЕ нужны: скрипт автоматически определяет прошивку,", C_GREEN)
-    box_line("  отключает блокировки, открывает системные разделы и убирает старые слои scratch.", C_GREEN)
+    box_line("• Пункт [1] — Снятие защиты установки (Универсально под любую версию):", C_YELLOW)
+    box_line("  ВАЖНО: Пункт [1] НЕ открывает закрытый порт ADB! Он нужен, если провод УЖЕ видит ГУ", C_RED)
+    box_line("  (открывали ранее, либо обновились у дилера, либо купили с открытым портом).", C_WHITE)
+    box_line("  Перемычка и сброс НЕ нужны: скрипт сам аппаратно поймет версию (2.1.3 с Parrot Trust,", C_GREEN)
+    box_line("  2.1.4.5 со снятием app_verify или 2.2.0 с изоляцией scratch) и всё сделает за вас.", C_GREEN)
     box_line("• Пункт [2] — Открыть ADB с нуля (порт закрыт с завода):", C_CYAN)
-    box_line("  Если машина новая и ноутбук не видит ГУ по кабелю. Нужна перемычка и сброс ГУ", C_WHITE)
-    box_line("  (Основное приложение ➔ Мой автомобиль ➔ Сброс к заводским настройкам),", C_WHITE)
-    box_line("  чтобы поймать 20-секундное окно и навсегда открыть порт через VHAL-команду.", C_GREEN)
+    box_line("  Если машина новая и ноутбук не видит ГУ по кабелю. Нужна перемычка и сброс ГУ,", C_WHITE)
+    box_line("  но ТОЛЬКО если у вас прошивка до 2.2.0 (нет лимита скорости в меню).", C_GREEN)
     box_bottom()
 
     box_title("[ШАГ 1] ОТКРЫВАЕМ СЛУЖЕБНУЮ СВЯЗЬ (ADB)")
@@ -549,9 +584,22 @@ def render_help_screen():
     box_line("• На экран ГУ ставится тумблер ADB Toggle: в один клик можно переключать разъём", C_WHITE)
     box_line("  между обычной флешкой с музыкой и кабелем отладки.", C_WHITE)
     box_line("• Открывается GeelyTune для установки помощника ГУ и удобных твиков интерфейса.", C_CYAN)
-    box_line("• Приложения теперь ставятся без препятствий: адаптированный софт под экран авто", C_WHITE)
-    box_line("  доступен на https://ex5app.wingie.ru/ (автор — первооткрыватель @wingus)", C_GREEN)
-    box_line("  либо устанавливайте любые свои файлы APK напрямую.", C_GREEN)
+    box_line("  На 2.1.3 при предупреждении нажмите на сайте «Разрешить GeelyTune на этой прошивке».", C_YELLOW)
+    box_line("• Приложения на 2.1.4.5+ и 2.2.0 ставятся свободно с https://ex5app.wingie.ru/ (автор @wingus).", C_GREEN)
+    box_line("  На ветке 2.1.3 магазин не поддерживает подпись — ставьте любые APK через пункт [T] в нашей программе.", C_YELLOW)
+    box_bottom()
+
+    box_title("[ПАМЯТКА] ПРАВИЛА ПОЕЗДКИ К ДИЛЕРУ И ОБНОВЛЕНИЯ ДО 2.2.0")
+    box_line("1. ПЕРЕД визитом к дилеру ОБЯЗАТЕЛЬНО включите тумблер ADB в положение ВКЛ!", C_RED)
+    box_line("   Дилеры часто сбрасывают ГУ на заводские настройки перед прошивкой. Если ADB выключен,", C_WHITE)
+    box_line("   а дилер зальёт 2.2.0 — перемычка больше не сработает и ADB закроется навсегда!", C_RED)
+    box_line("2. ПЕРЕД обновлением до 2.2.0 удалите компоненты GeelyTune (в меню GeelyTune).", C_YELLOW)
+    box_line("   Это предотвратит конфликт старых оверлеев с новой прошивкой.", C_WHITE)
+    box_line("3. Владельцам кастомных прошивок GMC:", C_YELLOW)
+    box_line("   Обновляйтесь у авторов GMC или просите дилера удалить её, иначе слетит ADB.", C_WHITE)
+    box_line("4. ПОСЛЕ обновления у дилера до 2.2.0 / GMC — СРАЗУ запустите Пункт [1] нашей программы!", C_GREEN)
+    box_line("   Пункт [1] — это официальный скрипт адаптации GeelyTune (https://t.me/geelyex5emidev/5/48009).", C_CYAN)
+    box_line("   Он отодвинет старые слои в scratch, снимет блокировки и подготовит ГУ к установке GT.", C_GREEN)
     box_bottom()
 
     box_title("[БЕЗОПАСНОСТЬ] ЧТО С МАШИНОЙ И ПЛАНШЕТОМ?")
@@ -561,9 +609,149 @@ def render_help_screen():
     box_line("• Европейские версии (e245_eu) определяются программно и защищены от лишних перезагрузок.", C_WHITE)
     box_bottom()
 
+    box_title("[ОБ АВТОРЕ СБОРКИ И ИСТОРИИ ПРОЕКТА (@leonkil318)]")
+    box_line("• Сразу уточню: автором этих скриптов я не являюсь. В нашей ветке ADB за всё", C_WHITE)
+    box_line("  время её существования накопилось немало скриптов и наработок. Я лишь собрал", C_WHITE)
+    box_line("  их воедино, добавил встроенный ADB и обернул в удобную консольную оболочку.", C_WHITE)
+    box_line("• Все сообщения об ошибках переведены на человеческий русский язык.", C_CYAN)
+    box_line("• Программа завершается корректно через пункт [0] Меню или сочетанием клавиш Ctrl+C.", C_WHITE)
+    box_line("• Если есть конструктивные предложения или замечания — пишите @leonkil318.", C_GREEN)
+    box_bottom()
+
     print()
     try:
-        input(f"{C_CYAN}Нажмите Enter для возврата в главное меню...{C_RESET}")
+        input(f"{C_CYAN}Нажмите Enter для перехода в главное меню приложения...{C_RESET}")
     except (KeyboardInterrupt, EOFError):
         pass
+
+
+def scroll_to_top():
+    """Scrolls the Windows console viewport to the top (0, 0) so the first line is visible."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        hOut = kernel32.CreateFileW("CONOUT$", 0x80000000 | 0x40000000, 3, None, 3, 0, None)
+        if hOut != -1:
+            class CONSOLE_SCREEN_BUFFER_INFO(ctypes.Structure):
+                _fields_ = [
+                    ('dwSize_X', ctypes.c_short), ('dwSize_Y', ctypes.c_short),
+                    ('dwCursorPosition_X', ctypes.c_short), ('dwCursorPosition_Y', ctypes.c_short),
+                    ('wAttributes', ctypes.c_ushort),
+                    ('srWindow_Left', ctypes.c_short), ('srWindow_Top', ctypes.c_short),
+                    ('srWindow_Right', ctypes.c_short), ('srWindow_Bottom', ctypes.c_short),
+                    ('dwMaximumWindowSize_X', ctypes.c_short), ('dwMaximumWindowSize_Y', ctypes.c_short),
+                ]
+            class SMALL_RECT(ctypes.Structure):
+                _fields_ = [('Left', ctypes.c_short), ('Top', ctypes.c_short),
+                            ('Right', ctypes.c_short), ('Bottom', ctypes.c_short)]
+
+            csbi = CONSOLE_SCREEN_BUFFER_INFO()
+            if kernel32.GetConsoleScreenBufferInfo(hOut, ctypes.byref(csbi)):
+                w = csbi.srWindow_Right - csbi.srWindow_Left
+                h = csbi.srWindow_Bottom - csbi.srWindow_Top
+                rect = SMALL_RECT(0, 0, w, h)
+                kernel32.SetConsoleWindowInfo(hOut, True, ctypes.byref(rect))
+            kernel32.CloseHandle(hOut)
+    except Exception:
+        pass
+
+
+def render_author_disclaimer(W=None):
+    """Renders author's note and disclaimer before program start with full original text and aligned borders."""
+    if W is None:
+        W = get_terminal_width()
+    inner = W - 4
+
+    def box_title(title):
+        t = f"┌─ {title} "
+        dash = max(2, W - visible_len(t) - 1)
+        print(f"{C_CYAN}{t}{'─' * dash}┐{C_RESET}")
+
+    def box_line(text, color=C_WHITE):
+        clean = ANSI_REGEX.sub('', text)
+        if not clean:
+            p = " " * inner
+            print(f"{C_CYAN}│{C_RESET} {p} {C_CYAN}│{C_RESET}")
+            return
+        for line in textwrap.wrap(clean, width=inner, subsequent_indent="  "):
+            p = pad_box_line(f"{color}{line}{C_RESET}", inner)
+            print(f"{C_CYAN}│{C_RESET} {p} {C_CYAN}│{C_RESET}")
+
+    def box_bottom():
+        print(f"{C_CYAN}└{'─' * (W - 2)}┘{C_RESET}")
+
+    box_title("ВАЖНОЕ ОБРАЩЕНИЕ ОТ АВТОРА СБОРКИ (@leonkil318)")
+    box_line("Сразу уточню: автором этих скриптов я не являюсь. В нашей ветке ADB за всё", C_WHITE)
+    box_line("время её существования, по мере появления разных версий машин, накопилось", C_WHITE)
+    box_line("немало различных скриптов и наработок. Я лишь собрал их воедино, добавил", C_WHITE)
+    box_line("необходимые зависимости и сделал из этого удобный инструмент для тех, кто", C_WHITE)
+    box_line("не хочет или не умеет самостоятельно разбираться в командной строке.", C_WHITE)
+    box_line("", C_WHITE)
+    box_line("По сути, я просто обернул штатные ADB-операции в понятную оболочку, а сообщения", C_CYAN)
+    box_line("об ошибках, где это было необходимо, перевёл на человеческий русский язык,", C_CYAN)
+    box_line("чтобы было понятно, что происходит и что делать дальше.", C_CYAN)
+    box_line("", C_WHITE)
+    box_line("Скрипт собирался со всеми необходимыми зависимостями — ничего дополнительно", C_WHITE)
+    box_line("скачивать из интернета или устанавливать отдельно, в том числе ADB, не требуется.", C_WHITE)
+    box_line("Никакого лишнего функционала вроде Fastboot там нет.", C_WHITE)
+    box_line("", C_WHITE)
+    box_line("Обкладывать его проверками на все возможные сценарии, включая закрытие CMD", C_YELLOW)
+    box_line("крестиком, я не вижу смысла. Это консольное приложение, и способ его корректного", C_YELLOW)
+    box_line("завершения был отдельно указан: только через пункт [0] Меню или Ctrl+C.", C_YELLOW)
+    box_line("", C_WHITE)
+    box_line("Скрипт свою задачу выполняет. Если не соблюдать указанный порядок работы,", C_WHITE)
+    box_line("некорректное завершение процесса вполне ожидаемо. Это не означает, что сам", C_WHITE)
+    box_line("инструмент нуждается в дополнительных проверках на все случаи жизни.", C_WHITE)
+    box_line("", C_WHITE)
+    box_line("Если есть конкретные предложения по улучшению или замечания по работе —", C_GREEN)
+    box_line("пишите. Если они действительно имеют смысл, я доработаю.", C_GREEN)
+    box_line("", C_WHITE)
+    box_line("[!] ПРЕДУПРЕЖДЕНИЕ И ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ (DISCLAIMER):", C_RED)
+    box_line("Всё, что вы делаете со своим автомобилем, мультимедиа-системой и электронными", C_YELLOW)
+    box_line("блоками, вы делаете ИСКЛЮЧИТЕЛЬНО НА СВОЙ СТРАХ И РИСК!", C_RED)
+    box_line("Ни автор этой сборки (@leonkil318), ни авторы оригинальных скриптов не несут", C_YELLOW)
+    box_line("никакой ответственности за возможные последствия: потерю заводской гарантии,", C_YELLOW)
+    box_line("сбои в работе ГУ, зависания, окирпичивание («кирпич»), закрытие портов или", C_YELLOW)
+    box_line("любой иной ущерб вашему имуществу. Если вы не уверены в своих действиях или", C_YELLOW)
+    box_line("не понимаете, что делаете — немедленно закройте программу и обратитесь к специалистам.", C_YELLOW)
+    box_bottom()
+    scroll_to_top()
+
+
+def render_exit_screen(seconds=5):
+    """Displays a large, centered farewell message on exit and holds for specified seconds."""
+    clear_screen()
+    W = get_terminal_width()
+    inner = max(40, min(W - 4, 90))
+
+    banner_lines = [
+        "",
+        "★ ★ ★   ПРИЯТНЫХ ПОЕЗДОК И УДАЧИ НА ДОРОГАХ!   ★ ★ ★",
+        "",
+        "Берегите себя и свой Geely! Пусть каждая поездка приносит радость.",
+        "Спасибо за доверие и взаимное уважение в сообществе!",
+        "",
+        f"До новых встреч на трассе! Окно закроется через {seconds} сек...",
+        ""
+    ]
+
+    # Vertical centering padding
+    pad_top = max(1, (24 - len(banner_lines) - 4) // 2)
+    sys.stdout.write("\n" * pad_top)
+
+    # Horizontal centering of box
+    margin = " " * max(0, (W - inner - 2) // 2)
+
+    print(f"{margin}{C_GREEN}╔" + ("═" * inner) + f"╗{C_RESET}")
+    for line in banner_lines:
+        v = visible_len(line)
+        left = max(0, (inner - v) // 2)
+        right = max(0, inner - v - left)
+        print(f"{margin}{C_GREEN}║{C_RESET}{' ' * left}{C_WHITE}{C_BOLD}{line}{C_RESET}{' ' * right}{C_GREEN}║{C_RESET}")
+    print(f"{margin}{C_GREEN}╚" + ("═" * inner) + f"╝{C_RESET}")
+
+    sys.stdout.flush()
+    time.sleep(seconds)
 

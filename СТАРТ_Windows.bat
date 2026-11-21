@@ -1,5 +1,6 @@
 @echo off
 cd /d "%~dp0"
+mode con: cols=120 lines=42 >nul 2>&1
 
 echo ===================================================
 echo   Starting Geely ADB Unlock Master...

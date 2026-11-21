@@ -109,22 +109,26 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          tag_name: ${{ github.ref_name == 'main' && 'v2.1.4.5' || github.ref_name }}
-          name: Geely ADB Unlock Master ${{ github.ref_name == 'main' && 'v2.1.4.5' || github.ref_name }}
+          tag_name: ${{ github.ref_name == 'main' && 'universal' || github.ref_name }}
+          name: Geely ADB Unlock Master (Universal)
           draft: false
           prerelease: false
           body: |
-            ### 🚀 Geely ADB Unlock Master (Zero-Dependency Native TUI/CLI)
+            ### 🚀 Geely ADB Unlock Master (Universal Edition)
+            Универсальное автономное решение «в один клик» для постоянной разблокировки отладки по ADB, снятия ограничений установки сторонних приложений (Parrot certificates, AutoInstallVerifier) и интеграции с веб-установщиком GeelyTune и каталогом EX5 Apps на автомобилях Geely (Geely EX5 EM-i, Galaxy E5, Belgee X80 / Flyme Auto / Ecarx).
 
-            Универсальное автономное решение для постоянной разблокировки ADB и снятия ограничений установки сторонних приложений на автомобилях Geely (включая Geely EX5 EM-i / Flyme Auto / Ecarx).
+            > 💡 **Важно:** В настройках ГУ у всех автомобилей с завода пишется маска `T1.0.0`. Данная сборка является универсальной и безопасно работает со всеми поколениями систем!
 
-            #### 📦 Скачать одиночный файл под вашу систему:
+            #### 📦 Скачать готовый одиночный файл под вашу систему:
             * **Windows 10/11:** `GeelyUnlock.exe` (запуск двойным кликом, установка Python не требуется)
-            * **macOS (Apple Silicon & Intel):** `GeelyUnlock-macOS` (`chmod +x GeelyUnlock-macOS && ./GeelyUnlock-macOS`)
+            * **macOS (Apple Silicon M1-M4 & Intel):** `GeelyUnlock-macOS` (`chmod +x GeelyUnlock-macOS && ./GeelyUnlock-macOS`)
             * **Linux (Ubuntu / Debian / Fedora):** `GeelyUnlock-Linux` (`chmod +x GeelyUnlock-Linux && ./GeelyUnlock-Linux`)
 
-            #### ✨ Особенности релиза:
-            * Автономный одиночный исполняемый файл без внешних зависимостей
-            * Встроенные бинарники Google ADB (Windows, macOS, Linux)
-            * Экспресс-снятие защиты после обновления ОД до 2.1.4.5+ и первоначальная разблокировка
-            * Умная проверка и установка переключателя Geely-ADB-Toggle на экран ГУ
+            ---
+
+            #### 🌟 Особенности и нововведения релиза:
+            * **Универсальность (маска T1.0.0):** Из названия и интерфейса убраны вводящие в заблуждение номера версий. Программа считывает реальные системные свойства Android и содержит визуальные ориентиры сообщества (лимит скорости, значки климата) для защиты от лишней разборки салона.
+            * **Бесшовный авто-fallback для старых прошивок (< 2.1.4.5):** При выборе Пункта [1] программа не падает, а автоматически внедряет доверенный сертификат Parrot Trust для установки переключателя `Geely-ADB-Toggle`.
+            * **Бесконфликтная работа с GeelyTune и EX5 Apps (WebUSB):** При переходе на сайты служба ADB на ПК глушится, а при возврате в программу срабатывает автоматический перехват порта (`reclaim_adb_connection`) с понятными подсказками.
+            * **Интерфейс (TUI):** Автоматическое разворачивание окна на весь экран в Windows (`SW_MAXIMIZE`), исключающее вертикальную прокрутку, полный текст обращения автора (@leonkil318) с дисклеймером, обязательный ознакомительный переход в Справку и тёплое пожелание удачи на дорогах при выходе (5 секунд).
+            * **Zero-Dependency:** Внутри каждого исполняемого файла зашиты официальные бинарники Google ADB, скрипты адаптации и APK переключателя.
