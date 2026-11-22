@@ -45,98 +45,145 @@ def get_resource_path(relative_path):
 def humanize_adb_error(raw_err, context=""):
     """
     Translates raw low-level ADB errors, OS socket errors, and Android status messages
-    into clear, respectful, and actionable diagnostic explanations with step-by-step guidance.
+    into clear, respectful, and actionable diagnostic explanations in plain Russian
+    with step-by-step guidance for non-IT users.
     """
     raw_str = str(raw_err or "").strip()
     raw_lower = raw_str.lower()
 
-    if any(k in raw_lower for k in ["no devices/emulators found", "device not found", "device offline"]):
+    # 1. Connection / Device not found / Power sleep / Feature set failure
+    if any(k in raw_lower for k in [
+        "no devices/emulators found", "no devices", "device not found",
+        "failed to get feature set", "device 'null' not found", "error: closed",
+        "device offline"
+    ]):
         title = "Автомобиль (ГУ) не обнаружен через USB"
-        reason = "Служба ADB не обнаружила активного мультимедийного устройства на USB-портах компьютера."
+        reason = "Компьютер не видит мультимедийную систему автомобиля. Кабель не подключен, автомобиль «уснул» (отключилось питание) либо порт ADB ещё не был активирован."
         steps = [
-            "Проверьте надежность подключения кабеля USB-A между ноутбуком и сервисным портом ГУ.",
-            "Убедитесь, что экран мультимедиа автомобиля включен и находится в рабочем состоянии.",
-            "Если отладка по ADB в ГУ настраивается впервые (или закрыта), используйте «[2] Открыть ADB с нуля» с перемычкой. Пункт [1] не открывает закрытый ADB, а только снимает защиту установки на машинах с уже активным портом (после обновления у ОД)."
+            "Проверьте USB-кабель: он должен быть надежно и плотно вставлен в порт автомобиля и ноутбука (без переходников и USB-хабов).",
+            "Включите питание автомобиля: кратковременно нажмите на педаль тормоза, чтобы экран мультимедиа загорелся и блоки проснулись.",
+            "Если отладка по ADB настраивается впервые: сначала выберите в главном меню пункт [2] (Открыть ADB с нуля через перемычку). На закрытом с завода ГУ компьютер не сможет увидеть машину до сброса настроек."
         ]
         return title, reason, steps
 
+    # 2. Unauthorized
     if "unauthorized" in raw_lower:
         title = "Требуется подтвердить доступ на экране ГУ"
-        reason = "Головное устройство ожидает подтверждения ключа безопасности отладки по USB."
+        reason = "Головное устройство ожидает вашего подтверждения для связи по USB."
         steps = [
             "Посмотрите на центральный экран мультимедиа автомобиля.",
             "Во всплывающем окне «Разрешить отладку по USB?» установите флажок «Всегда разрешать с этого компьютера» и нажмите «ОК»."
         ]
         return title, reason, steps
 
+    # 3. Multiple devices
     if "more than one device" in raw_lower:
-        title = "Обнаружено несколько подключенных Android-устройств"
-        reason = "К компьютеру подключено несколько устройств в режиме ADB (смартфон, планшет или эмулятор)."
+        title = "Подключено несколько USB-устройств"
+        reason = "К компьютеру подключено несколько устройств в режиме Android (например, ваш смартфон и кабель автомобиля)."
         steps = [
-            "Отключите от ноутбука любые посторонние смартфоны и внешние гаджеты.",
+            "Отключите от ноутбука любые посторонние смартфоны, планшеты и внешние гаджеты.",
             "Оставьте подключенным только USB-кабель, идущий к автомобилю."
         ]
         return title, reason, steps
 
-    if any(k in raw_lower for k in ["must be root", "adbd cannot run as root", "not in root mode", "uid is not 0"]):
-        title = "Отсутствуют системные root-права на ГУ"
-        reason = "Команда требует привилегий суперпользователя, но служба adbd запущена в ограниченном пользовательском режиме."
+    # 4. Root / Permissions
+    if any(k in raw_lower for k in ["must be root", "adbd cannot run as root", "not in root mode", "uid is not 0", "uid != 0"]):
+        title = "Отсутствуют права суперпользователя (root)"
+        reason = "Система ГУ не предоставила права доступа к системным разделам."
         steps = [
-            "При первоначальной разблокировке убедитесь, что перемычка установлена и сброс настроек запущен во время перехвата.",
-            "При экспресс-снятии убедитесь, что в ГУ ранее был активирован постоянный режим ADB (VHAL)."
+            "Если вы открываете ADB с нуля: убедитесь, что перемычка установлена в разъём, а сброс настроек запущен при работающей программе.",
+            "Если у вас прошивка 2.2.0: запустите Пункт [1] меню (он автоматически применит режим root для GeelyTune)."
         ]
         return title, reason, steps
 
-    if any(k in raw_lower for k in ["build.prop", "не удалось изменить", "read-only file system", "remount failed"]):
-        title = "Системные разделы ГУ заблокированы для записи"
-        reason = "Раздел /product или /system защищён от изменений (read-only overlayfs)."
+    # 5. Read-only filesystem / Remount failed / Permission denied
+    if any(k in raw_lower for k in [
+        "read-only file system", "remount failed", "read-only", "cannot copy",
+        "permission denied", "operation not permitted"
+    ]):
+        title = "Системный раздел ГУ защищен от записи"
+        reason = "Заводская система защиты автомобиля блокирует сохранение файлов в системную память ГУ."
         steps = [
-            "Убедитесь, что получен root-доступ к ГУ (adb root).",
-            "Повторите операцию: программа перемонтирует файловую систему (remount) и внесёт изменения."
+            "Убедитесь, что экран автомобиля включен (кратковременно нажмите педаль тормоза при необходимости).",
+            "В главном меню выберите пункт [6] (Перезапустить службу ADB), а затем повторите операцию."
         ]
         return title, reason, steps
 
-    if any(k in raw_lower for k in ["install_parse_failed_no_certificates", "install_failed_no_certificates"]):
-        title = "Установка заблокирована защитой сертификатов Parrot"
-        reason = "Прошивка Geely отклоняет установку приложений без заводской цифровой подписи Parrot."
+    # 6. Parrot certificate rejection
+    if any(k in raw_lower for k in [
+        "install_parse_failed_no_certificates", "install_failed_no_certificates",
+        "no certificates", "parrot certificates"
+    ]):
+        title = "Установка заблокирована защитой Parrot"
+        reason = "Заводская прошивка Geely отклонила установку APK, так как в нём нет цифровой подписи завода."
         steps = [
-            "Запустите «Сценарий 1: Экспресс-снятие защиты», чтобы отключить параметр ro.vendor.ecarx.app_verify.",
-            "Дождитесь штатной перезагрузки ГУ для применения системных изменений."
+            "Если у вас прошивка 2.1.4.5+ или 2.2.0: выберите Пункт [1] меню (он снимет проверку Parrot и позволит ставить любые программы).",
+            "Если у вас ранняя прошивка (до 2.1.4.5): воспользуйтесь пунктом [T] для добавления ключа приложения в хранилище Parrot Trust."
         ]
         return title, reason, steps
 
-    if any(k in raw_lower for k in ["autoinstallverifier не выключился", "xsfinstallverifier", "install_failed_verification"]):
+    # 7. Verification failure (AutoInstallVerifier)
+    if any(k in raw_lower for k in [
+        "install_failed_verification_failure", "install_failed_verifier",
+        "autoinstallverifier", "xsfinstallverifier"
+    ]):
         title = "Установка заблокирована верификатором Geely"
-        reason = "Системная служба com.ecarx.xsfinstallverifier отклоняет установку сторонних APK-пакетов."
+        reason = "Встроенный робот безопасности ГУ (AutoInstallVerifier) блокирует установку сторонних программ."
         steps = [
-            "Выполните процедуру снятия защиты: программа принудительно отключит службу верификатора."
+            "Запустите Пункт [1] главного меню: программа автоматически отключит системного верификатора для всех профилей."
         ]
         return title, reason, steps
 
-    if any(k in raw_lower for k in ["таймаут", "timeoutexpired", "timed out"]):
-        title = "Превышено время ожидания ответа от ГУ"
-        reason = "Головное устройство не ответило на системный запрос в течение установленного таймаута."
+    # 8. Insufficient storage
+    if any(k in raw_lower for k in ["install_failed_insufficient_storage", "no space left"]):
+        title = "Недостаточно свободной памяти на ГУ"
+        reason = "В мультимедийной системе автомобиля закончилось свободное дисковое пространство."
         steps = [
-            "Проверьте надежность кабеля USB — возможно, отошел контакт при вибрации.",
-            "Убедитесь, что экран мультимедиа не завис (при необходимости перезагрузите экран удержанием регулятора громкости)."
+            "Откройте на экране автомобиля настройки и удалите неиспользуемые приложения или загруженную музыку.",
+            "Повторите установку приложения."
         ]
         return title, reason, steps
 
-    if any(k in raw_lower for k in ["cannot connect to daemon", "connection refused", "failed to start daemon"]):
-        title = "Сбой локальной службы ADB на компьютере"
-        reason = "Сервер ADB не смог привязаться к порту 5037 на вашем компьютере (порт занят сторонним процессом)."
+    # 9. App already exists with different signature
+    if any(k in raw_lower for k in ["install_failed_update_incompatible", "signatures do not match"]):
+        title = "Конфликт подписи ранее установленного приложения"
+        reason = "На автомобиле уже установлена другая версия этого приложения с отличной цифровой подписью."
         steps = [
-            "Закройте сторонние утилиты синхронизации смартфонов или эмуляторы Android.",
-            "В главном меню выберите пункт «[5] Перезапустить службу ADB» для автоматической очистки процессов."
+            "Удалите старую версию приложения с экрана автомобиля.",
+            "Повторите установку заново."
+        ]
+        return title, reason, steps
+
+    # 10. Connection broken / Timeout / USB glitch
+    if any(k in raw_lower for k in [
+        "timeoutexpired", "timed out", "таймаут", "protocol fault",
+        "broken pipe", "connection reset"
+    ]):
+        title = "Связь с автомобилем прервалась или превышен таймаут"
+        reason = "В процессе работы прервался обмен данными по USB-кабелю (отошел провод или автомобиль выключил питание)."
+        steps = [
+            "Проверьте USB-кабель — контакт мог отойти от вибрации.",
+            "Нажмите кратковременно педаль тормоза для возобновления подачи питания на ГУ.",
+            "Повторите операцию из меню."
+        ]
+        return title, reason, steps
+
+    # 11. ADB Server / Daemon conflict on computer
+    if any(k in raw_lower for k in ["cannot connect to daemon", "connection refused", "failed to start daemon", "address already in use"]):
+        title = "Сбой фоновой службы ADB на компьютере"
+        reason = "Фоновый процесс adb.exe завис или сетевой порт 5037 на ноутбуке занят сторонней программой."
+        steps = [
+            "В главном меню выберите пункт [6] (Перезапустить службу ADB).",
+            "Закройте на компьютере любые программы синхронизации телефонов (Mi PC Suite, Huawei Suite) и эмуляторы Android."
         ]
         return title, reason, steps
 
     # Fallback with context
     title = context or "Сбой выполнения операции"
-    reason = "Система ГУ вернула технический код ошибки при выполнении команды."
+    reason = "Система ГУ не смогла выполнить команду из-за отсутствия связи или блокировки доступа."
     steps = [
-        "Проверьте надежность USB-кабеля и активность экрана мультимедиа.",
-        "Выполните проверку в меню: «[3] Проверить статус ГУ (Диагностика связи)»."
+        "Проверьте подключение USB-кабеля и активность экрана ГУ (кратковременно нажмите педаль тормоза).",
+        "В главном меню выберите пункт [3] (Проверить статус ГУ) для диагностики."
     ]
     return title, reason, steps
 
@@ -187,17 +234,41 @@ class AppState:
             pass
 
     def set_error(self, title, reason="", steps=None, raw=""):
+        check_text = (str(reason or "") + " " + str(raw or "") + " " + str(title or "")).strip()
+        check_lower = check_text.lower()
+
+        # Check if text contains technical ADB / OS error signatures
+        has_tech = any(k in check_lower for k in [
+            "failed to get feature set", "no devices", "device offline",
+            "not found", "unauthorized", "must be root", "remount failed",
+            "read-only", "cannot connect", "broken pipe", "connection reset",
+            "install_failed", "install_parse_failed", "failure [", "permission denied",
+            "adb: error", "adbd cannot", "timeoutexpired", "timed out", "error: closed"
+        ])
+
+        if has_tech or not reason:
+            h_title, h_reason, h_steps = humanize_adb_error(check_text, context=title)
+            final_title = h_title if (not title or any(w in title.lower() for w in ["ошибка", "сбой", "adb", "не удалось"])) else title
+            final_reason = h_reason
+            final_steps = steps if (steps and len(steps) > 1 and not has_tech) else h_steps
+            final_raw = raw or (reason if reason != h_reason else "") or title
+        else:
+            final_title = title
+            final_reason = reason
+            final_steps = steps or []
+            final_raw = raw
+
         details = {
-            "title": title,
-            "reason": reason,
-            "steps": steps or [],
-            "raw": str(raw).strip() if raw else ""
+            "title": final_title,
+            "reason": final_reason,
+            "steps": final_steps,
+            "raw": str(final_raw).strip() if final_raw else ""
         }
         with self.lock:
             self.status = "error"
-            self.status_message = title
+            self.status_message = final_title
             self.last_error_details = details
-        self.log(title, level="error")
+        self.log(final_title, level="error")
 
     def set_status(self, status, message, step=None):
         with self.lock:
@@ -1366,7 +1437,8 @@ def worker_install_via_parrot_trust(apk_path, app_name=None):
                     pass
 
         if code != 0:
-            STATE.set_error("Ошибка копирования сертификата", err or out, ["Проверьте доступность файловой системы ГУ."])
+            title, reason, steps = humanize_adb_error(err or out, context="Ошибка записи сертификата в систему ГУ")
+            STATE.set_error(title, reason, steps, raw=err or out)
             return
 
         run_adb(["shell", f"chown root:root {target_pem} && chmod 644 {target_pem} && restorecon {target_pem}"])
@@ -1436,5 +1508,6 @@ def worker_install_via_parrot_trust(apk_path, app_name=None):
         STATE.set_status("success", f"Приложение {base_apk} успешно установлено!")
         STATE.log(f"🎉 ГОТОВО: {base_apk} успешно установлено на раннюю прошивку ГУ!", "success")
     else:
-        STATE.set_error("Ошибка установки приложения", f"Не удалось установить APK: {out_inst}", ["Попробуйте повторить установку."])
+        title, reason, steps = humanize_adb_error((out_inst or "") + " " + (err_inst or ""), context=f"Не удалось установить {base_apk}")
+        STATE.set_error(title, reason, steps, raw=(out_inst or "") + " " + (err_inst or ""))
 

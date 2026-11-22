@@ -360,7 +360,7 @@ def print_error_card(err):
     # Reason
     reason = err.get("reason", "")
     if reason:
-        print_line(f"{C_YELLOW}{C_BOLD}• Суть проблемы:{C_RESET}")
+        print_line(f"{C_YELLOW}{C_BOLD}• Суть проблемы простыми словами:{C_RESET}")
         for r_line in textwrap.wrap(reason, width=inner - 4):
             print_line(f"  {r_line}")
         print_empty()
@@ -368,19 +368,19 @@ def print_error_card(err):
     # Steps
     steps = err.get("steps", [])
     if steps:
-        print_line(f"{C_CYAN}{C_BOLD}• Рекомендуемые действия:{C_RESET}")
+        print_line(f"{C_GREEN}{C_BOLD}• Что нужно сделать по шагам:{C_RESET}")
         for i, step in enumerate(steps, 1):
             wrapped = textwrap.wrap(f"{i}. {step}", width=inner - 4, subsequent_indent="   ")
             for s_line in wrapped:
                 print_line(f"  {s_line}")
         print_empty()
 
-    # Technical ADB details (if available and different from title)
+    # Technical ADB details (if available and different from title and reason)
     raw = err.get("raw", "")
-    if raw and raw.strip() != title.strip():
-        print_line(f"{C_GRAY}{C_BOLD}• Исходный код ошибки системы (ADB):{C_RESET}")
+    if raw and raw.strip() not in [title.strip(), reason.strip()]:
+        print_line(f"{C_GRAY}• Технический код ошибки (для справки):{C_RESET}")
         clean_raw = ANSI_REGEX.sub('', str(raw)).strip()
-        for raw_line in clean_raw.splitlines()[:3]:
+        for raw_line in clean_raw.splitlines()[:2]:
             for w_r in textwrap.wrap(raw_line, width=inner - 4):
                 print_line(f"  {C_GRAY}{w_r}{C_RESET}")
 
