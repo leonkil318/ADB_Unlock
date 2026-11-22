@@ -5,6 +5,9 @@ rem =========================================================
 chcp 65001 >nul
 cd /d "%~dp0"
 
+rem Clean up any stale emulator session files
+del /f /q .emulator_port .emulator_state.json >nul 2>&1
+
 echo [1/2] Launching Geely HU Stand in manual mode...
 where wt.exe >nul 2>&1
 if not errorlevel 1 (

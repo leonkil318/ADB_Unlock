@@ -368,6 +368,12 @@ def run_emulator_adb(args):
         if raw:
             data = json.loads(raw.decode("utf-8").strip())
             return data.get("code", 0), data.get("out", ""), data.get("err", "")
+    except (ConnectionRefusedError, socket.timeout):
+        try:
+            if os.path.isfile(port_file):
+                os.remove(port_file)
+        except Exception:
+            pass
     except Exception:
         pass
 
