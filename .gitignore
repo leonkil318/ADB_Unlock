@@ -3,6 +3,10 @@ core/debug.log
 *.log
 core/.emulator_state.json*
 core/.emulator_port*
+core/demo_live.py
+core/emulator.py
+core/*ДЕМО*
+core/*ЭМУЛЯТОР*
 
 # Python
 __pycache__/
