@@ -52,3 +52,7 @@ desktop.ini
 *.bak
 *.zip
 *.tar*
+
+# AI agent instructions and skills (local development only)
+.agents/
+AGENTS.md
