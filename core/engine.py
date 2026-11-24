@@ -123,7 +123,10 @@ def humanize_adb_error(raw_err, context=""):
         return title, reason, steps
 
     # 7. Verification failure (AutoInstallVerifier)
-    if any(k in raw_lower for k in [
+    is_verifier_turned_off = any(neg in raw_lower for neg in [
+        "выключен", "отключен", "disabled", "не найден", "отсутствует", "already disabled"
+    ])
+    if not is_verifier_turned_off and any(k in raw_lower for k in [
         "install_failed_verification_failure", "install_failed_verifier",
         "autoinstallverifier", "xsfinstallverifier"
     ]):
@@ -1032,9 +1035,16 @@ def worker_catch_factory_reset():
 # ==================== STEP 3: REBOOT & VERIFY ====================
 def worker_reboot_and_verify():
     """Reboots HU and waits for full boot (jumper safely remains in place)."""
-    STATE.set_status("working", "Перезагрузка ГУ... Это займет около 1.5 - 2 минут.", 3)
-    STATE.log("🔄 Отправляем команду перезагрузки головного устройства...", "cmd")
-    STATE.log("💡 Пояснение: перемычку пока НЕ извлекаем (оставляем до конца настройки GeelyTune). Перезагружаем ГУ для применения VHAL.", "info")
+    STATE.set_status("working", "Перезагрузка ГУ (экран погаснет, это норма!). Ожидаем загрузку...", 3)
+    STATE.log("⚠️ ВНИМАНИЕ: ЭКРАН АВТОМОБИЛЯ СЕЙЧАС ПОГАСНЕТ И ПЕРЕЗАГРУЗИТСЯ!", "warning")
+    STATE.log("💡 Это абсолютно нормальный штатный процесс: ГУ перезагружается для сохранения постоянного ADB.", "info")
+    STATE.log("⏳ Пожалуйста, не пугайтесь и ничего не трогайте! Экран мультимедиа включится сам через 1.5 - 2 минуты.", "info")
+    STATE.log("🔌 Провод USB и сервисную перемычку оставляем на месте, питание автомобиля не выключаем.", "info")
+
+    # Read current boot session id before reboot to prevent catching stale status
+    _, prev_boot_id, _ = run_adb(["shell", "cat", "/proc/sys/kernel/random/boot_id"], timeout=5)
+    prev_boot_id = prev_boot_id.strip()
+
     run_adb(["reboot"], timeout=10)
     time.sleep(15)
 
@@ -1047,7 +1057,7 @@ def worker_reboot_and_verify():
                 steps=[
                     "Убедитесь, что экран мультимедиа автомобиля включился и загрузился.",
                     "Проверьте надежность подключения кабеля USB-A к порту ГУ и ноутбука.",
-                    "При необходимости перезагрузите экран ГУ вручную удержанием кнопки громкости."
+                    "При необходимости кратковременно нажмите педаль тормоза для подачи питания."
                 ],
                 raw="Boot verification timeout (300s)"
             )
@@ -1055,7 +1065,14 @@ def worker_reboot_and_verify():
 
         code, out, _ = run_adb(["shell", "getprop", "sys.boot_completed"], timeout=5)
         if code == 0 and out.strip() == "1":
-            STATE.log("✅ Головное устройство полностью загрузилось! Проверяем постоянство связи ADB...", "success")
+            if prev_boot_id:
+                _, cur_boot_id, _ = run_adb(["shell", "cat", "/proc/sys/kernel/random/boot_id"], timeout=5)
+                cur_boot_id = cur_boot_id.strip()
+                if cur_boot_id and cur_boot_id == prev_boot_id:
+                    time.sleep(3)
+                    continue
+
+            STATE.log("✅ Экран автомобиля включился и полностью загрузился! Проверяем постоянство связи ADB...", "success")
             time.sleep(2)
             check_devices()
             if STATE.device_state == "connected":
@@ -1163,9 +1180,18 @@ def worker_unlock_and_install():
             run_adb(["remount"], timeout=15)
             time.sleep(2)
         elif "GT:REBOOT" in out:
-            STATE.log("🔄 Требуется промежуточная перезагрузка ГУ для применения настроек (около 1.5 - 2 минут)...", "info")
+            STATE.set_status("working", "Перезагрузка ГУ (экран погаснет, это норма!). Ожидаем загрузку...", 4)
+            STATE.log("⚠️ ВНИМАНИЕ: ЭКРАН АВТОМОБИЛЯ СЕЙЧАС ПОГАСНЕТ И ПЕРЕЗАГРУЗИТСЯ!", "warning")
+            STATE.log("💡 Это абсолютно нормальный штатный процесс: система автомобиля применяет системные разделы.", "info")
+            STATE.log("⏳ Пожалуйста, не пугайтесь и ничего не трогайте! Экран мультимедиа включится сам через 1.5 - 2 минуты.", "info")
+            STATE.log("🔌 Кабель USB не трогаем, питание авто не выключаем. Программа автоматически продолжит настройку...", "info")
+
+            # Read current boot session id prior to reboot to prevent premature resume
+            _, prev_boot_id, _ = run_adb(["shell", "cat", "/proc/sys/kernel/random/boot_id"], timeout=5)
+            prev_boot_id = prev_boot_id.strip()
+
             run_adb(["reboot"], timeout=10)
-            time.sleep(20)
+            time.sleep(15)
             reboot_start = time.time()
             reboot_ok = False
             rescue_attempted = False
@@ -1183,7 +1209,7 @@ def worker_unlock_and_install():
                         if "GT:REBOOT" in out_res:
                             STATE.log("🔄 Конфликтный слой отодвинут, отправляем ГУ в повторную перезагрузку...", "info")
                             run_adb(["reboot"], timeout=10)
-                            time.sleep(20)
+                            time.sleep(15)
                             reboot_start = time.time()
                             continue
                     STATE.set_error(
@@ -1191,14 +1217,22 @@ def worker_unlock_and_install():
                         reason="Головное устройство не вышло на связь после команды перезагрузки.",
                         steps=[
                             "Убедитесь, что экран мультимедиа автомобиля включился и загрузился.",
-                            "Проверьте надежность подключения кабеля USB-A к порту ГУ и ноутбука."
+                            "Проверьте надежность подключения кабеля USB-A к порту ГУ и ноутбука.",
+                            "Кратковременно нажмите на педаль тормоза для подачи питания."
                         ],
                         raw="Reboot timeout exceeded 300s"
                     )
                     return
                 c, b_out, _ = run_adb(["shell", "getprop", "sys.boot_completed"], timeout=5)
                 if c == 0 and b_out.strip() == "1":
+                    if prev_boot_id:
+                        _, cur_boot_id, _ = run_adb(["shell", "cat", "/proc/sys/kernel/random/boot_id"], timeout=5)
+                        cur_boot_id = cur_boot_id.strip()
+                        if cur_boot_id and cur_boot_id == prev_boot_id:
+                            time.sleep(3)
+                            continue
                     reboot_ok = True
+                    STATE.log("✅ Экран автомобиля включился и успешно загрузился! Продолжаем выполнение процедур...", "success")
                     break
                 time.sleep(3)
             if not reboot_ok or STATE.stop_worker:
@@ -1206,6 +1240,24 @@ def worker_unlock_and_install():
             ensure_root(timeout=60)
             run_adb(["wait-for-device"], timeout=10)
         else:
+            # Check if device was in the middle of unexpected reboot
+            code_st, out_st, _ = run_adb(["get-state"], timeout=2)
+            if code_st != 0 or out_st.strip() != "device":
+                STATE.set_status("working", "ГУ ушло в перезагрузку (экран погас, это норма!). Ждём...", 4)
+                STATE.log("⚠️ Экран автомобиля ушел в перезагрузку. Ожидаем включения мультимедиа (около 1.5 - 2 мин)...", "warning")
+                reboot_start = time.time()
+                recovered = False
+                while not STATE.stop_worker and (time.time() - reboot_start < 240):
+                    c, b_out, _ = run_adb(["shell", "getprop", "sys.boot_completed"], timeout=5)
+                    if c == 0 and b_out.strip() == "1":
+                        recovered = True
+                        STATE.log("✅ Экран авто снова включился и загрузился! Продолжаем настройку...", "success")
+                        ensure_root(timeout=30)
+                        break
+                    time.sleep(3)
+                if recovered:
+                    continue
+
             title, reason, steps = humanize_adb_error(out, context="Непредвиденный ответ скрипта разблокировки")
             STATE.set_error(title, reason, steps, raw=out)
             return
@@ -1405,7 +1457,10 @@ def worker_install_via_parrot_trust(apk_path, app_name=None):
         ensure_root(timeout=15)
         code_rem, out_rem, err_rem = run_adb(["remount"], timeout=15)
         if "reboot" in (out_rem + err_rem).lower():
-            STATE.log("🔄 Требуется перезагрузка для remount — перезагружаем ГУ (около 2 минут)...", "cmd")
+            STATE.set_status("working", "Перезагрузка ГУ для remount (экран погаснет, это норма!)...")
+            STATE.log("⚠️ ВНИМАНИЕ: ЭКРАН АВТОМОБИЛЯ СЕЙЧАС ПОГАСНЕТ И ПЕРЕЗАГРУЗИТСЯ!", "warning")
+            STATE.log("💡 Это штатный процесс: система автомобиля применяет открытие разделов.", "info")
+            STATE.log("⏳ Не пугайтесь и ничего не трогайте! Экран мультимедиа включится сам через 1.5 - 2 минуты.", "info")
             run_adb(["reboot"], timeout=10)
             time.sleep(20)
             start_rem_wait = time.time()
@@ -1442,8 +1497,11 @@ def worker_install_via_parrot_trust(apk_path, app_name=None):
             return
 
         run_adb(["shell", f"chown root:root {target_pem} && chmod 644 {target_pem} && restorecon {target_pem}"])
-        STATE.log("✅ Сертификат добавлен в систему! Перезагружаем ГУ для применения (около 2 минут)...", "success")
-
+        STATE.set_status("working", "Перезагрузка ГУ для применения сертификата (экран погаснет, это норма!)...")
+        STATE.log("✅ Сертификат добавлен в систему!", "success")
+        STATE.log("⚠️ ВНИМАНИЕ: ЭКРАН АВТОМОБИЛЯ СЕЙЧАС ПОГАСНЕТ И ПЕРЕЗАГРУЗИТСЯ!", "warning")
+        STATE.log("💡 Это штатная перезагрузка ГУ для применения добавленного доверенного ключа.", "info")
+        STATE.log("⏳ Не пугайтесь и ничего не трогайте! Экран мультимедиа включится сам через 1.5 - 2 минуты.", "info")
         run_adb(["reboot"], timeout=10)
         time.sleep(20)
 
